@@ -1,0 +1,50 @@
+# BCM Module SDK — version 0.1.0
+#
+# Local Postgres + Keycloak for the Dev Host.
+# Usage (from this directory):
+#   docker compose up -d
+#   cd .. && ./gradlew :bcm-dev-host:bootRun
+#
+# Ports avoid colliding with a full BCM stack on the same machine.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bcm-sdk-postgres
+    environment:
+      POSTGRES_DB: bcm_sdk
+      POSTGRES_USER: bcm_sdk
+      POSTGRES_PASSWORD: bcm_sdk
+    ports:
+      - "5433:5432"
+    volumes:
+      - bcm_sdk_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bcm_sdk -d bcm_sdk"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2
+    container_name: bcm-sdk-keycloak
+    command: ["start-dev", "--http-port=8180", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8180
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "8180:8180"
+    volumes:
+      - ./docker/keycloak/realm-bcm-sdk.json:/opt/keycloak/data/import/realm-bcm-sdk.json:ro
+      - bcm_sdk_keycloak_data:/opt/keycloak/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  bcm_sdk_pg:
+  bcm_sdk_keycloak_data:

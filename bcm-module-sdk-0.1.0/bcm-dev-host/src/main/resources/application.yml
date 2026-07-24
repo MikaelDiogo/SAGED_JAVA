@@ -1,0 +1,44 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: bcm-dev-host
+  datasource:
+    url: jdbc:postgresql://localhost:5433/bcm_sdk
+    username: bcm_sdk
+    password: bcm_sdk
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration,classpath:db/module-migration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${BCM_SDK_ISSUER_URI:http://localhost:8180/realms/bcm-sdk}
+
+bcm:
+  security:
+    jwt-enabled: ${BCM_SDK_JWT_ENABLED:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    org.springframework.security: INFO

@@ -1,4 +1,4 @@
-package br.gov.crateus.bcm.saged.application;
+package br.gov.crateus.bcm.devhost.saged;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import br.gov.crateus.bcm.saged.application.DemandService;
 import br.gov.crateus.bcm.saged.domain.DemandStatus;
 import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.DemandHistoryEntity;

@@ -23,6 +23,4 @@ dependencies {
 	compileOnly("org.springframework.boot:spring-boot-starter-security:3.5.3")
 	compileOnly("org.springframework.boot:spring-boot-starter-validation:3.5.3")
 	compileOnly("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
-
-	compileOnly("org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.3")
 }

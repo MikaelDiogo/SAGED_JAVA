@@ -82,6 +82,13 @@ abstract class SagedIntegrationTestBase {
                            .claim("specialty_codes", java.util.List.of("HW")));
     }
 
+    protected static JwtRequestPostProcessor adminSetorJwt() {
+        return jwt()
+                .authorities(new SimpleGrantedAuthority("ROLE_SAGED_ADMIN_SETOR"))
+                .jwt(t -> t.subject(TEST_USER_ID.toString())
+                           .claim("org_unit_id", TEST_DEPT_ID.toString()));
+    }
+
     protected static JwtRequestPostProcessor lidJwt() {
         return jwt()
                 .authorities(new SimpleGrantedAuthority("ROLE_SAGED_TECNICO_LIDER"))

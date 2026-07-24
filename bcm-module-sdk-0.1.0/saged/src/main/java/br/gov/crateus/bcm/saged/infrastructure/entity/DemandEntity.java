@@ -1,6 +1,6 @@
 package br.gov.crateus.bcm.saged.infrastructure.entity;
 
-import br.gov.crateus.bcm.devhost.persistence.SdkAuditableEntity;
+import br.gov.crateus.bcm.sdk.persistence.SdkAuditableEntity;
 import br.gov.crateus.bcm.saged.domain.DemandStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

@@ -1,0 +1,70 @@
+{
+  "realm": "bcm-sdk",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "ADMIN", "description": "Platform administrator (write on platform APIs)" },
+      { "name": "USER", "description": "Authenticated user without admin privileges" }
+    ]
+  },
+  "users": [
+    {
+      "username": "dev-admin",
+      "enabled": true,
+      "email": "dev-admin@example.local",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Admin",
+      "credentials": [
+        { "type": "password", "value": "dev-admin", "temporary": false }
+      ],
+      "realmRoles": ["ADMIN", "USER"]
+    },
+    {
+      "username": "dev-user",
+      "enabled": true,
+      "email": "dev-user@example.local",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "User",
+      "credentials": [
+        { "type": "password", "value": "dev-user", "temporary": false }
+      ],
+      "realmRoles": ["USER"]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "bcm-sdk-public",
+      "name": "BCM SDK public SPA",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "redirectUris": ["http://localhost:*", "http://127.0.0.1:*"],
+      "webOrigins": ["+"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "bcm-dev-host",
+      "name": "BCM Dev Host resource server",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "bcm-dev-host-secret",
+      "serviceAccountsEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    }
+  ]
+}
