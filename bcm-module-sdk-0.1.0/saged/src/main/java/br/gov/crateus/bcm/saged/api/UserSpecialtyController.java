@@ -1,0 +1,96 @@
+package br.gov.crateus.bcm.saged.api;
+
+import br.gov.crateus.bcm.saged.api.dto.CreateUserSpecialtyRequest;
+import br.gov.crateus.bcm.saged.api.dto.UserSpecialtyResponse;
+import br.gov.crateus.bcm.saged.infrastructure.entity.SpecialtyEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.UserSpecialtyEntity;
+import br.gov.crateus.bcm.saged.infrastructure.repository.SpecialtyRepository;
+import br.gov.crateus.bcm.saged.infrastructure.repository.UserSpecialtyRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+@RestController
+@RequestMapping("/api/v1/saged/user-specialties")
+@Tag(name = "saged-user-specialties")
+public class UserSpecialtyController {
+
+    private final UserSpecialtyRepository userSpecialtyRepository;
+    private final SpecialtyRepository specialtyRepository;
+
+    public UserSpecialtyController(UserSpecialtyRepository userSpecialtyRepository,
+                                    SpecialtyRepository specialtyRepository) {
+        this.userSpecialtyRepository = userSpecialtyRepository;
+        this.specialtyRepository = specialtyRepository;
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @Operation(summary = "List user-specialty assignments — filter by userId or specialtyId")
+    public List<UserSpecialtyResponse> list(
+            @RequestParam(required = false) UUID userId,
+            @RequestParam(required = false) UUID specialtyId) {
+        if (userId != null) {
+            return userSpecialtyRepository.findByUserId(userId)
+                .stream().map(UserSpecialtyResponse::from).toList();
+        }
+        if (specialtyId != null) {
+            return userSpecialtyRepository.findBySpecialtyId(specialtyId)
+                .stream().map(UserSpecialtyResponse::from).toList();
+        }
+        return userSpecialtyRepository.findAll()
+            .stream().map(UserSpecialtyResponse::from).toList();
+    }
+
+    @PostMapping
+    @PreAuthorize("hasAuthority('SAGED_ADMIN_GERAL')")
+    @Operation(summary = "Assign a user to a specialty (ADMIN_GERAL only)")
+    @Transactional
+    public ResponseEntity<UserSpecialtyResponse> create(
+            @RequestBody @Valid CreateUserSpecialtyRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        SpecialtyEntity specialty = specialtyRepository.findById(request.getSpecialtyId())
+            .orElseThrow(() -> new IllegalArgumentException("Specialty not found: " + request.getSpecialtyId()));
+
+        if (userSpecialtyRepository.existsByUserIdAndSpecialtyId(request.getUserId(), request.getSpecialtyId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "User already assigned to this specialty");
+        }
+
+        UserSpecialtyEntity e = new UserSpecialtyEntity();
+        e.setUserId(request.getUserId());
+        e.setSpecialty(specialty);
+        e.setCreatedBy(jwt.getSubject());
+        e.setUpdatedBy(jwt.getSubject());
+        e = userSpecialtyRepository.save(e);
+        return ResponseEntity.status(HttpStatus.CREATED).body(UserSpecialtyResponse.from(e));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('SAGED_ADMIN_GERAL')")
+    @Operation(summary = "Remove a user-specialty assignment (ADMIN_GERAL only)")
+    @Transactional
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        if (!userSpecialtyRepository.existsById(id)) {
+            throw new IllegalArgumentException("User-specialty assignment not found: " + id);
+        }
+        userSpecialtyRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+}

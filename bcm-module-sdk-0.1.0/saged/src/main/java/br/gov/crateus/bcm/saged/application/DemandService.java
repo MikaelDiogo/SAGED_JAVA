@@ -124,6 +124,12 @@ public class DemandService {
     }
 
     @Transactional(readOnly = true)
+    public DemandEntity findById(UUID id) {
+        return demandRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Demand not found: " + id));
+    }
+
+    @Transactional(readOnly = true)
     public Optional<DemandEntity> findByProtocol(String protocol) {
         return demandRepository.findByProtocol(protocol);
     }

@@ -77,6 +77,13 @@ public class DemandController {
         return DemandResponse.from(demand);
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @Operation(summary = "Get demand by ID")
+    public DemandResponse getById(@PathVariable UUID id) {
+        return DemandResponse.from(demandService.findById(id));
+    }
+
     @PatchMapping("/{id}/assignee")
     @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER')")
     @Operation(summary = "Assign a technician to a demand")
