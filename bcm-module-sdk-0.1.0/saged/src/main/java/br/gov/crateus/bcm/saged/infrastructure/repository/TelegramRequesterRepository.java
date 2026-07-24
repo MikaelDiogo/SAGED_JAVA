@@ -7,4 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TelegramRequesterRepository extends JpaRepository<TelegramRequesterEntity, UUID> {
     Optional<TelegramRequesterEntity> findByTelegramChatIdAndActiveTrue(String telegramChatId);
+    boolean existsByTelegramChatId(String telegramChatId);
 }

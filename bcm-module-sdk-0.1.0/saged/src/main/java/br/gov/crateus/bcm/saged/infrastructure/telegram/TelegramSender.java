@@ -1,6 +1,7 @@
 package br.gov.crateus.bcm.saged.infrastructure.telegram;
 
 import br.gov.crateus.bcm.saged.config.SagedTelegramProperties;
+import java.util.HashMap;
 import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,20 @@ public class TelegramSender {
             .uri("/bot{token}/sendMessage", botToken)
             .contentType(MediaType.APPLICATION_JSON)
             .body(Map.of("chat_id", chatId, "text", text, "parse_mode", "Markdown"))
+            .retrieve()
+            .toBodilessEntity();
+    }
+
+    public void registerWebhook(String webhookUrl, String secret) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("url", webhookUrl);
+        if (secret != null && !secret.isBlank()) {
+            body.put("secret_token", secret);
+        }
+        restClient.post()
+            .uri("/bot{token}/setWebhook", botToken)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(body)
             .retrieve()
             .toBodilessEntity();
     }
