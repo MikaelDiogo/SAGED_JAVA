@@ -32,14 +32,14 @@ public class SpecialtyController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "List all specialties")
     public List<SpecialtyResponse> list() {
         return specialtyRepository.findAll().stream().map(SpecialtyResponse::from).toList();
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('SAGED_ADMIN_GERAL')")
+    @PreAuthorize("hasRole('SAGED_ADMIN_GERAL')")
     @Operation(summary = "Create a specialty (ADMIN_GERAL only)")
     public ResponseEntity<SpecialtyResponse> create(@RequestBody @Valid CreateSpecialtyRequest request,
                                                      @AuthenticationPrincipal Jwt jwt) {

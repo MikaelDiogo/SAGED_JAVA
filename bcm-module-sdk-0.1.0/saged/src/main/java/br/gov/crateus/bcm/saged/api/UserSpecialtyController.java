@@ -45,7 +45,7 @@ public class UserSpecialtyController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "List user-specialty assignments — filter by userId or specialtyId")
     public Page<UserSpecialtyResponse> list(
             @RequestParam(required = false) UUID userId,
@@ -61,7 +61,7 @@ public class UserSpecialtyController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('SAGED_ADMIN_GERAL')")
+    @PreAuthorize("hasRole('SAGED_ADMIN_GERAL')")
     @Operation(summary = "Assign a user to a specialty (ADMIN_GERAL only)")
     @Transactional
     public ResponseEntity<UserSpecialtyResponse> create(
@@ -84,7 +84,7 @@ public class UserSpecialtyController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('SAGED_ADMIN_GERAL')")
+    @PreAuthorize("hasRole('SAGED_ADMIN_GERAL')")
     @Operation(summary = "Remove a user-specialty assignment (ADMIN_GERAL only)")
     @Transactional
     public ResponseEntity<Void> delete(@PathVariable UUID id) {

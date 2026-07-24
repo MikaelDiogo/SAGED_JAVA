@@ -35,14 +35,14 @@ public class TelegramRequesterController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('SAGED_ADMIN_GERAL')")
+    @PreAuthorize("hasRole('SAGED_ADMIN_GERAL')")
     @Operation(summary = "List all Telegram requesters")
     public List<TelegramRequesterResponse> list() {
         return repository.findAll().stream().map(TelegramRequesterResponse::from).toList();
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('SAGED_ADMIN_GERAL')")
+    @PreAuthorize("hasRole('SAGED_ADMIN_GERAL')")
     @Operation(summary = "Register a Telegram requester")
     public ResponseEntity<TelegramRequesterResponse> create(
             @RequestBody @Valid CreateTelegramRequesterRequest request,
@@ -64,7 +64,7 @@ public class TelegramRequesterController {
     }
 
     @PatchMapping("/{id}/deactivate")
-    @PreAuthorize("hasAuthority('SAGED_ADMIN_GERAL')")
+    @PreAuthorize("hasRole('SAGED_ADMIN_GERAL')")
     @Operation(summary = "Deactivate a Telegram requester")
     public TelegramRequesterResponse deactivate(@PathVariable UUID id,
                                                  @AuthenticationPrincipal Jwt jwt) {
@@ -76,7 +76,7 @@ public class TelegramRequesterController {
     }
 
     @PatchMapping("/{id}/activate")
-    @PreAuthorize("hasAuthority('SAGED_ADMIN_GERAL')")
+    @PreAuthorize("hasRole('SAGED_ADMIN_GERAL')")
     @Operation(summary = "Reactivate a Telegram requester")
     public TelegramRequesterResponse activate(@PathVariable UUID id,
                                                @AuthenticationPrincipal Jwt jwt) {

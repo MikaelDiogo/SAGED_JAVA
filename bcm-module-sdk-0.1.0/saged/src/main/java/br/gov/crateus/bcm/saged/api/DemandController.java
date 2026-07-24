@@ -45,7 +45,7 @@ public class DemandController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "Create a demand")
     public ResponseEntity<DemandResponse> create(@RequestBody @Valid CreateDemandRequest request,
                                                   @AuthenticationPrincipal Jwt jwt) {
@@ -62,7 +62,7 @@ public class DemandController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "List demands with optional filters — visibility enforced by role")
     public Page<DemandResponse> list(
             @RequestParam(required = false) DemandStatus status,
@@ -79,14 +79,14 @@ public class DemandController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "Get demand by ID")
     public DemandResponse getById(@PathVariable UUID id) {
         return DemandResponse.from(demandService.findById(id));
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER')")
     @Operation(summary = "Change demand status")
     public DemandResponse changeStatus(@PathVariable UUID id,
                                         @RequestBody @Valid ChangeStatusRequest request,
@@ -96,7 +96,7 @@ public class DemandController {
     }
 
     @PatchMapping("/{id}/assignee")
-    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER')")
     @Operation(summary = "Assign a technician to a demand")
     public DemandResponse assign(@PathVariable UUID id,
                                   @RequestBody @Valid AssignDemandRequest request,
@@ -105,7 +105,7 @@ public class DemandController {
     }
 
     @PatchMapping("/{id}/note")
-    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "Update technical note on a demand")
     public DemandResponse updateNote(@PathVariable UUID id,
                                       @RequestBody @Valid UpdateNoteRequest request,
@@ -114,7 +114,7 @@ public class DemandController {
     }
 
     @GetMapping("/{id}/history")
-    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "Get demand history")
     public List<DemandHistoryResponse> getHistory(@PathVariable UUID id) {
         return demandService.getHistory(id).stream().map(DemandHistoryResponse::from).toList();

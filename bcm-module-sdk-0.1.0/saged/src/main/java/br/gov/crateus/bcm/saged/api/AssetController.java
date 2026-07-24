@@ -38,7 +38,7 @@ public class AssetController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "List assets")
     public Page<AssetResponse> list(
             @PageableDefault(size = 20, sort = "assetTag", direction = Sort.Direction.ASC) Pageable pageable) {
@@ -46,7 +46,7 @@ public class AssetController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "Get asset by ID")
     public AssetResponse getById(@PathVariable UUID id) {
         return AssetResponse.from(assetRepository.findById(id)
@@ -54,7 +54,7 @@ public class AssetController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR')")
     @Operation(summary = "Create an asset")
     public ResponseEntity<AssetResponse> create(@RequestBody @Valid CreateAssetRequest request,
                                                  @AuthenticationPrincipal Jwt jwt) {
@@ -72,7 +72,7 @@ public class AssetController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('SAGED_ADMIN_GERAL')")
+    @PreAuthorize("hasRole('SAGED_ADMIN_GERAL')")
     @Operation(summary = "Deactivate an asset (soft delete)")
     public AssetResponse deactivate(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         AssetEntity e = assetRepository.findById(id)

@@ -47,7 +47,7 @@ public class TelegramWebhookController {
     }
 
     @PostMapping("/webhook/register")
-    @PreAuthorize("hasAuthority('SAGED_ADMIN_GERAL')")
+    @PreAuthorize("hasRole('SAGED_ADMIN_GERAL')")
     @Operation(summary = "Manually register Telegram webhook URL (ADMIN_GERAL only)")
     public ResponseEntity<Map<String, String>> registerWebhook() {
         String url = props.getWebhookUrl();
