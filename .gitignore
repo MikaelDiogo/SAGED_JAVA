@@ -7,3 +7,4 @@ out/
 docker/keycloak/realm-bcm-sdk.json.bak
 .env
 *.env
+CONTEXTO_PROJETO_SAGED.md
