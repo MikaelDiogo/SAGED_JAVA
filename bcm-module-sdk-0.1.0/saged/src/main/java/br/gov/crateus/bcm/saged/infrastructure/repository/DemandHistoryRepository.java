@@ -1,5 +1,6 @@
-package br.gov.crateus.bcm.saged.infrastructure;
+package br.gov.crateus.bcm.saged.infrastructure.repository;
 
+import br.gov.crateus.bcm.saged.infrastructure.entity.DemandHistoryEntity;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;

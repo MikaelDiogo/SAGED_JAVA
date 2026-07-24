@@ -2,8 +2,8 @@ package br.gov.crateus.bcm.saged.api;
 
 import br.gov.crateus.bcm.saged.api.dto.CreateSpecialtyRequest;
 import br.gov.crateus.bcm.saged.api.dto.SpecialtyResponse;
-import br.gov.crateus.bcm.saged.infrastructure.SpecialtyEntity;
-import br.gov.crateus.bcm.saged.infrastructure.SpecialtyRepository;
+import br.gov.crateus.bcm.saged.infrastructure.entity.SpecialtyEntity;
+import br.gov.crateus.bcm.saged.infrastructure.repository.SpecialtyRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

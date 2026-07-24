@@ -1,7 +1,7 @@
 package br.gov.crateus.bcm.saged.api.dto;
 
 import br.gov.crateus.bcm.saged.domain.DemandStatus;
-import br.gov.crateus.bcm.saged.infrastructure.DemandEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 

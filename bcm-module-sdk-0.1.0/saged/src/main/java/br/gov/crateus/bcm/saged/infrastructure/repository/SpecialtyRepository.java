@@ -1,5 +1,6 @@
-package br.gov.crateus.bcm.saged.infrastructure;
+package br.gov.crateus.bcm.saged.infrastructure.repository;
 
+import br.gov.crateus.bcm.saged.infrastructure.entity.SpecialtyEntity;
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import java.util.UUID;
@@ -9,9 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface SpecialtyRepository extends JpaRepository<SpecialtyEntity, UUID> {
-
     Optional<SpecialtyEntity> findByCode(String code);
-
     boolean existsByCode(String code);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

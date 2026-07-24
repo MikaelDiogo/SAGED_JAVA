@@ -1,6 +1,6 @@
 package br.gov.crateus.bcm.saged.api.dto;
 
-import br.gov.crateus.bcm.saged.infrastructure.SpecialtyEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.SpecialtyEntity;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 

@@ -1,6 +1,7 @@
-package br.gov.crateus.bcm.saged.infrastructure;
+package br.gov.crateus.bcm.saged.infrastructure.repository;
 
 import br.gov.crateus.bcm.saged.domain.DemandStatus;
+import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -9,19 +10,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface DemandRepository extends JpaRepository<DemandEntity, UUID> {
-
     Optional<DemandEntity> findByProtocol(String protocol);
-
     boolean existsByProtocol(String protocol);
-
+    List<DemandEntity> findByRequesterUserId(UUID requesterUserId);
     List<DemandEntity> findByDepartmentId(UUID departmentId);
-
-    List<DemandEntity> findBySpecialtyId(UUID specialtyId);
-
     List<DemandEntity> findByStatus(DemandStatus status);
-
     List<DemandEntity> findByDepartmentIdAndStatus(UUID departmentId, DemandStatus status);
-
     List<DemandEntity> findByAssigneeUserId(UUID assigneeUserId);
 
     @Query(value = "SELECT COUNT(*) FROM saged.demands WHERE specialty_id = :specialtyId AND EXTRACT(YEAR FROM created_at) = :year", nativeQuery = true)

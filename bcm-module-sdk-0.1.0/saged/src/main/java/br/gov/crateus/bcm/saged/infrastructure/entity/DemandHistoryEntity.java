@@ -1,4 +1,4 @@
-package br.gov.crateus.bcm.saged.infrastructure;
+package br.gov.crateus.bcm.saged.infrastructure.entity;
 
 import br.gov.crateus.bcm.devhost.persistence.SdkAuditableEntity;
 import jakarta.persistence.Column;

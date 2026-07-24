@@ -1,15 +1,16 @@
 package br.gov.crateus.bcm.saged.application;
 
 import br.gov.crateus.bcm.saged.domain.DemandStatus;
-import br.gov.crateus.bcm.saged.infrastructure.DemandEntity;
-import br.gov.crateus.bcm.saged.infrastructure.DemandHistoryEntity;
-import br.gov.crateus.bcm.saged.infrastructure.DemandHistoryRepository;
-import br.gov.crateus.bcm.saged.infrastructure.DemandRepository;
-import br.gov.crateus.bcm.saged.infrastructure.SpecialtyEntity;
-import br.gov.crateus.bcm.saged.infrastructure.SpecialtyRepository;
+import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.DemandHistoryEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.SpecialtyEntity;
+import br.gov.crateus.bcm.saged.infrastructure.repository.DemandHistoryRepository;
+import br.gov.crateus.bcm.saged.infrastructure.repository.DemandRepository;
+import br.gov.crateus.bcm.saged.infrastructure.repository.SpecialtyRepository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -73,7 +74,6 @@ public class DemandService {
             throw new IllegalStateException(
                 "Transition " + demand.getStatus() + " -> " + newStatus + " is not allowed");
         }
-
         if (newStatus == DemandStatus.INTERRUPTED && (justification == null || justification.isBlank())) {
             throw new IllegalArgumentException("Justification is required when interrupting a demand");
         }
@@ -96,6 +96,16 @@ public class DemandService {
                 ? demandRepository.findBySpecialtyCodeIn(specialtyCodes)
                 : List.of();
         };
+    }
+
+    @Transactional(readOnly = true)
+    public List<DemandEntity> listByRequester(UUID requesterUserId) {
+        return demandRepository.findByRequesterUserId(requesterUserId);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<DemandEntity> findByProtocol(String protocol) {
+        return demandRepository.findByProtocol(protocol);
     }
 
     @Transactional(readOnly = true)
