@@ -1,0 +1,14 @@
+bcm:
+  security:
+    jwt-enabled: false
+
+saged:
+  telegram:
+    bot-token: ""
+    webhook-url: ""
+    webhook-secret: ""
+
+logging:
+  level:
+    org.springframework.security: WARN
+    org.flywaydb: WARN
