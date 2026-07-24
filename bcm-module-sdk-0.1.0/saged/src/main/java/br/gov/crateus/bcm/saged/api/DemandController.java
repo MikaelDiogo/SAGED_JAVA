@@ -1,9 +1,11 @@
 package br.gov.crateus.bcm.saged.api;
 
+import br.gov.crateus.bcm.saged.api.dto.AssignDemandRequest;
 import br.gov.crateus.bcm.saged.api.dto.ChangeStatusRequest;
 import br.gov.crateus.bcm.saged.api.dto.CreateDemandRequest;
 import br.gov.crateus.bcm.saged.api.dto.DemandHistoryResponse;
 import br.gov.crateus.bcm.saged.api.dto.DemandResponse;
+import br.gov.crateus.bcm.saged.api.dto.UpdateNoteRequest;
 import br.gov.crateus.bcm.saged.application.DemandService;
 import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
 import io.swagger.v3.oas.annotations.Operation;
@@ -73,6 +75,24 @@ public class DemandController {
         DemandEntity demand = demandService.changeStatus(
             id, request.getStatus(), request.getJustification(), jwt.getSubject());
         return DemandResponse.from(demand);
+    }
+
+    @PatchMapping("/{id}/assignee")
+    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER')")
+    @Operation(summary = "Assign a technician to a demand")
+    public DemandResponse assign(@PathVariable UUID id,
+                                  @RequestBody @Valid AssignDemandRequest request,
+                                  @AuthenticationPrincipal Jwt jwt) {
+        return DemandResponse.from(demandService.assign(id, request.getAssigneeUserId(), jwt.getSubject()));
+    }
+
+    @PatchMapping("/{id}/note")
+    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @Operation(summary = "Update technical note on a demand")
+    public DemandResponse updateNote(@PathVariable UUID id,
+                                      @RequestBody @Valid UpdateNoteRequest request,
+                                      @AuthenticationPrincipal Jwt jwt) {
+        return DemandResponse.from(demandService.updateNote(id, request.getNote(), jwt.getSubject()));
     }
 
     @GetMapping("/{id}/history")

@@ -98,6 +98,26 @@ public class DemandService {
         };
     }
 
+    public DemandEntity assign(UUID demandId, UUID assigneeUserId, String actor) {
+        DemandEntity demand = demandRepository.findById(demandId)
+            .orElseThrow(() -> new IllegalArgumentException("Demand not found: " + demandId));
+        demand.setAssigneeUserId(assigneeUserId);
+        demand.setUpdatedBy(actor);
+        demand = demandRepository.save(demand);
+        recordHistory(demand, "ASSIGNED", null, actor);
+        return demand;
+    }
+
+    public DemandEntity updateNote(UUID demandId, String note, String actor) {
+        DemandEntity demand = demandRepository.findById(demandId)
+            .orElseThrow(() -> new IllegalArgumentException("Demand not found: " + demandId));
+        demand.setCurrentTechnicalNote(note);
+        demand.setUpdatedBy(actor);
+        demand = demandRepository.save(demand);
+        recordHistory(demand, "NOTE_UPDATED", null, actor);
+        return demand;
+    }
+
     @Transactional(readOnly = true)
     public List<DemandEntity> listByRequester(UUID requesterUserId) {
         return demandRepository.findByRequesterUserId(requesterUserId);
