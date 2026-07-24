@@ -9,8 +9,11 @@ import br.gov.crateus.bcm.saged.infrastructure.repository.UserSpecialtyRepositor
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -44,19 +47,17 @@ public class UserSpecialtyController {
     @GetMapping
     @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "List user-specialty assignments — filter by userId or specialtyId")
-    public List<UserSpecialtyResponse> list(
+    public Page<UserSpecialtyResponse> list(
             @RequestParam(required = false) UUID userId,
-            @RequestParam(required = false) UUID specialtyId) {
+            @RequestParam(required = false) UUID specialtyId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         if (userId != null) {
-            return userSpecialtyRepository.findByUserId(userId)
-                .stream().map(UserSpecialtyResponse::from).toList();
+            return userSpecialtyRepository.findByUserId(userId, pageable).map(UserSpecialtyResponse::from);
         }
         if (specialtyId != null) {
-            return userSpecialtyRepository.findBySpecialtyId(specialtyId)
-                .stream().map(UserSpecialtyResponse::from).toList();
+            return userSpecialtyRepository.findBySpecialtyId(specialtyId, pageable).map(UserSpecialtyResponse::from);
         }
-        return userSpecialtyRepository.findAll()
-            .stream().map(UserSpecialtyResponse::from).toList();
+        return userSpecialtyRepository.findAll(pageable).map(UserSpecialtyResponse::from);
     }
 
     @PostMapping

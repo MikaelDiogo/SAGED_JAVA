@@ -7,12 +7,17 @@ import br.gov.crateus.bcm.saged.api.dto.DemandHistoryResponse;
 import br.gov.crateus.bcm.saged.api.dto.DemandResponse;
 import br.gov.crateus.bcm.saged.api.dto.UpdateNoteRequest;
 import br.gov.crateus.bcm.saged.application.DemandService;
+import br.gov.crateus.bcm.saged.domain.DemandStatus;
 import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +30,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -57,13 +63,26 @@ public class DemandController {
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
-    @Operation(summary = "List demands — visibility filtered by JWT role")
-    public List<DemandResponse> list(@AuthenticationPrincipal Jwt jwt) {
+    @Operation(summary = "List demands with optional filters — visibility enforced by role")
+    public Page<DemandResponse> list(
+            @RequestParam(required = false) DemandStatus status,
+            @RequestParam(required = false) UUID specialtyId,
+            @RequestParam(required = false) UUID departmentId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal Jwt jwt) {
         String role = resolveTopRole();
         UUID orgUnitId = resolveOrgUnitId(jwt);
         List<String> specialtyCodes = jwt.getClaimAsStringList("specialty_codes");
-        return demandService.list(role, orgUnitId, specialtyCodes != null ? specialtyCodes : List.of())
-            .stream().map(DemandResponse::from).toList();
+        return demandService.list(role, orgUnitId, specialtyCodes != null ? specialtyCodes : List.of(),
+                status, specialtyId, departmentId, pageable)
+            .map(DemandResponse::from);
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @Operation(summary = "Get demand by ID")
+    public DemandResponse getById(@PathVariable UUID id) {
+        return DemandResponse.from(demandService.findById(id));
     }
 
     @PatchMapping("/{id}/status")
@@ -72,16 +91,8 @@ public class DemandController {
     public DemandResponse changeStatus(@PathVariable UUID id,
                                         @RequestBody @Valid ChangeStatusRequest request,
                                         @AuthenticationPrincipal Jwt jwt) {
-        DemandEntity demand = demandService.changeStatus(
-            id, request.getStatus(), request.getJustification(), jwt.getSubject());
-        return DemandResponse.from(demand);
-    }
-
-    @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
-    @Operation(summary = "Get demand by ID")
-    public DemandResponse getById(@PathVariable UUID id) {
-        return DemandResponse.from(demandService.findById(id));
+        return DemandResponse.from(demandService.changeStatus(
+            id, request.getStatus(), request.getJustification(), jwt.getSubject()));
     }
 
     @PatchMapping("/{id}/assignee")

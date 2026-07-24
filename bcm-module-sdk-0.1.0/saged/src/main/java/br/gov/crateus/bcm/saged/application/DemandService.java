@@ -6,6 +6,7 @@ import br.gov.crateus.bcm.saged.infrastructure.entity.DemandHistoryEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.SpecialtyEntity;
 import br.gov.crateus.bcm.saged.infrastructure.repository.DemandHistoryRepository;
 import br.gov.crateus.bcm.saged.infrastructure.repository.DemandRepository;
+import br.gov.crateus.bcm.saged.infrastructure.repository.DemandSpecifications;
 import br.gov.crateus.bcm.saged.infrastructure.repository.SpecialtyRepository;
 import java.time.LocalDate;
 import java.util.List;
@@ -13,6 +14,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,8 +70,7 @@ public class DemandService {
 
     public DemandEntity changeStatus(UUID demandId, DemandStatus newStatus,
                                       String justification, String actor) {
-        DemandEntity demand = demandRepository.findById(demandId)
-            .orElseThrow(() -> new IllegalArgumentException("Demand not found: " + demandId));
+        DemandEntity demand = findById(demandId);
 
         Set<DemandStatus> allowed = VALID_TRANSITIONS.getOrDefault(demand.getStatus(), Set.of());
         if (!allowed.contains(newStatus)) {
@@ -85,22 +88,8 @@ public class DemandService {
         return demand;
     }
 
-    @Transactional(readOnly = true)
-    public List<DemandEntity> list(String role, UUID orgUnitId, List<String> specialtyCodes) {
-        return switch (role) {
-            case "SAGED_ADMIN_GERAL" -> demandRepository.findAll();
-            case "SAGED_ADMIN_SETOR" -> orgUnitId != null
-                ? demandRepository.findByDepartmentId(orgUnitId)
-                : List.of();
-            default -> specialtyCodes != null && !specialtyCodes.isEmpty()
-                ? demandRepository.findBySpecialtyCodeIn(specialtyCodes)
-                : List.of();
-        };
-    }
-
     public DemandEntity assign(UUID demandId, UUID assigneeUserId, String actor) {
-        DemandEntity demand = demandRepository.findById(demandId)
-            .orElseThrow(() -> new IllegalArgumentException("Demand not found: " + demandId));
+        DemandEntity demand = findById(demandId);
         demand.setAssigneeUserId(assigneeUserId);
         demand.setUpdatedBy(actor);
         demand = demandRepository.save(demand);
@@ -109,8 +98,7 @@ public class DemandService {
     }
 
     public DemandEntity updateNote(UUID demandId, String note, String actor) {
-        DemandEntity demand = demandRepository.findById(demandId)
-            .orElseThrow(() -> new IllegalArgumentException("Demand not found: " + demandId));
+        DemandEntity demand = findById(demandId);
         demand.setCurrentTechnicalNote(note);
         demand.setUpdatedBy(actor);
         demand = demandRepository.save(demand);
@@ -119,14 +107,32 @@ public class DemandService {
     }
 
     @Transactional(readOnly = true)
-    public List<DemandEntity> listByRequester(UUID requesterUserId) {
-        return demandRepository.findByRequesterUserId(requesterUserId);
+    public Page<DemandEntity> list(String role, UUID orgUnitId, List<String> specialtyCodes,
+                                    DemandStatus statusFilter, UUID specialtyIdFilter,
+                                    UUID departmentIdFilter, Pageable pageable) {
+        Specification<DemandEntity> visibility = switch (role) {
+            case "SAGED_ADMIN_SETOR" -> DemandSpecifications.withDepartmentId(orgUnitId);
+            case "SAGED_TECNICO"     -> DemandSpecifications.withSpecialtyCodeIn(specialtyCodes);
+            default                  -> Specification.where(null);
+        };
+
+        Specification<DemandEntity> filters = Specification
+            .where(DemandSpecifications.withStatus(statusFilter))
+            .and(DemandSpecifications.withSpecialtyId(specialtyIdFilter))
+            .and(DemandSpecifications.withDepartmentId(departmentIdFilter));
+
+        return demandRepository.findAll(visibility.and(filters), pageable);
     }
 
     @Transactional(readOnly = true)
     public DemandEntity findById(UUID id) {
         return demandRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Demand not found: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<DemandEntity> listByRequester(UUID requesterUserId) {
+        return demandRepository.findByRequesterUserId(requesterUserId);
     }
 
     @Transactional(readOnly = true)
