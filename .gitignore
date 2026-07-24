@@ -1,0 +1,9 @@
+build/
+.gradle/
+*.class
+out/
+.idea/
+*.iml
+docker/keycloak/realm-bcm-sdk.json.bak
+.env
+*.env
