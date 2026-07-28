@@ -39,6 +39,12 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+saged:
+  telegram:
+    bot-token: ${SAGED_TELEGRAM_BOT_TOKEN:}
+    webhook-secret: ${SAGED_TELEGRAM_WEBHOOK_SECRET:}
+    webhook-url: ${SAGED_TELEGRAM_WEBHOOK_URL:}
+
 logging:
   level:
     org.springframework.security: INFO
