@@ -24,38 +24,15 @@ public class TelegramSender {
         post(Map.of("chat_id", chatId, "text", text, "parse_mode", "MarkdownV2"));
     }
 
-    public void sendMainMenu(long chatId) {
+    public void sendMainMenu(long chatId, String infoUrl) {
         post(Map.of(
             "chat_id", chatId,
-            "text", "👋 *Bem\\-vindo ao SAGED*\n\nSistema de Gerenciamento de Demandas\\. Siga os passos abaixo:",
+            "text", "👋 *Bem\\-vindo ao SAGED*\n\nSistema de Suporte de TI da Prefeitura de Crateús\\. Siga os passos abaixo:",
             "parse_mode", "MarkdownV2",
             "reply_markup", Map.of(
                 "inline_keyboard", List.of(
-                    List.of(
-                        Map.of("text", "1️⃣  Conhecer o SAGED", "callback_data", "conhecer_saged"),
-                        Map.of("text", "2️⃣  Validar Número", "callback_data", "validar_numero")
-                    )
-                )
-            )
-        ));
-    }
-
-    public void sendSagedInfo(long chatId) {
-        String text =
-            "📋 *O que é o SAGED?*\n\n" +
-            "O SAGED é o sistema de gerenciamento de demandas de TI da Prefeitura de Crateús\\.\n\n" +
-            "Você pode abrir chamados para:\n" +
-            "• 🔧 *Manutenção* — hardware, equipamentos e periféricos\n" +
-            "• 🌐 *Internet* — conectividade e redes\n\n" +
-            "Cada chamado recebe um protocolo único e pode ser acompanhado em tempo real\\.\n\n" +
-            "Agora, *valide seu número* para solicitar acesso:";
-        post(Map.of(
-            "chat_id", chatId,
-            "text", text,
-            "parse_mode", "MarkdownV2",
-            "reply_markup", Map.of(
-                "inline_keyboard", List.of(
-                    List.of(Map.of("text", "2️⃣  Validar Número", "callback_data", "validar_numero"))
+                    List.of(Map.of("text", "ℹ️ Conhecer o SAGED", "web_app", Map.of("url", infoUrl))),
+                    List.of(Map.of("text", "📱 Validar meu número", "callback_data", "validar_numero"))
                 )
             )
         ));

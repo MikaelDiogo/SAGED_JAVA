@@ -45,6 +45,13 @@ public class TelegramMiniAppController {
         return buildHtml();
     }
 
+    @GetMapping(value = "/telegram/info", produces = MediaType.TEXT_HTML_VALUE)
+    public String infoPage(HttpServletResponse response) {
+        response.setHeader("ngrok-skip-browser-warning", "69420");
+        response.setHeader("Cache-Control", "no-store");
+        return buildInfoHtml();
+    }
+
     // /api/v1/saged/webhooks/** já é público pelo DevHostSecurityConfig
     @PostMapping("/api/v1/saged/webhooks/miniapp/demand")
     public ResponseEntity<Map<String, String>> createDemand(@RequestBody MiniAppDemandRequest request,
@@ -414,6 +421,275 @@ public class TelegramMiniAppController {
     }
   }
 </script>
+</body>
+</html>
+""";
+    }
+
+    private static String buildInfoHtml() {
+        return """
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <title>SAGED — Conheça o Sistema</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #f1f3f5;
+      color: #212529;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(160deg, #1a4731 0%, #2d9c5f 100%);
+      padding: 36px 20px 32px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='30'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.9);
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.5px;
+      padding: 4px 12px; border-radius: 20px;
+      margin-bottom: 14px;
+    }
+    .hero-icon-wrap {
+      width: 72px; height: 72px; border-radius: 20px;
+      background: rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px; font-size: 36px;
+    }
+    .hero h1 { color: #fff; font-size: 26px; font-weight: 800; line-height: 1.2; margin-bottom: 10px; }
+    .hero p  { color: rgba(255,255,255,0.8); font-size: 14px; line-height: 1.6; max-width: 320px; margin: 0 auto; }
+
+    /* STATS BAR */
+    .stats-bar {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      background: #fff; border-bottom: 1px solid #f1f3f5;
+    }
+    .stat-item {
+      padding: 14px 8px; text-align: center;
+      border-right: 1px solid #f1f3f5;
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-item .val { font-size: 20px; font-weight: 800; color: #1a4731; }
+    .stat-item .lbl { font-size: 10px; font-weight: 600; color: #868e96; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+    /* CONTENT */
+    .content { padding: 20px 16px 100px; }
+
+    .section { margin-bottom: 28px; }
+    .section-label {
+      font-size: 10px; font-weight: 700; color: #2d9c5f;
+      text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 12px;
+    }
+    .section-title { font-size: 18px; font-weight: 800; color: #1a1a2e; margin-bottom: 8px; }
+    .section-text  { font-size: 14px; color: #495057; line-height: 1.7; }
+
+    /* FLOW STEPS */
+    .steps { display: flex; flex-direction: column; gap: 0; }
+    .step {
+      display: flex; gap: 14px;
+      padding: 16px 0;
+      border-bottom: 1px solid #f1f3f5;
+      position: relative;
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num-wrap { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+    .step-num {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #1a4731; color: #fff;
+      font-size: 14px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-line {
+      width: 2px; flex: 1; background: #e9ecef; margin-top: 4px;
+      min-height: 20px;
+    }
+    .step:last-child .step-line { display: none; }
+    .step-body { padding-top: 6px; }
+    .step-body strong { display: block; font-size: 14px; font-weight: 700; color: #212529; margin-bottom: 4px; }
+    .step-body span   { font-size: 13px; color: #6c757d; line-height: 1.5; }
+
+    /* SERVICES */
+    .services { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .service-card {
+      background: #fff; border-radius: 14px; padding: 18px 14px;
+      border: 1.5px solid #e9ecef;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+    }
+    .service-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: #e8f7ef; display: flex; align-items: center; justify-content: center;
+    }
+    .service-icon i { font-size: 22px; color: #2d9c5f; }
+    .service-name { font-size: 13px; font-weight: 700; color: #212529; }
+    .service-desc { font-size: 12px; color: #868e96; line-height: 1.4; }
+
+    /* HIGHLIGHT BOX */
+    .highlight {
+      background: #f0faf4; border: 1.5px solid #b2dfdb;
+      border-radius: 14px; padding: 16px;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .highlight i { font-size: 22px; color: #2d9c5f; flex-shrink: 0; margin-top: 2px; }
+    .highlight-text strong { display: block; font-size: 13px; font-weight: 700; color: #1a4731; margin-bottom: 4px; }
+    .highlight-text span   { font-size: 13px; color: #495057; line-height: 1.5; }
+
+    /* BOTTOM CTA */
+    .bottom-cta {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      padding: 12px 16px 20px;
+      background: #fff; border-top: 1px solid #e9ecef;
+    }
+    .btn {
+      width: 100%; padding: 14px; border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 700; font-family: inherit;
+      cursor: pointer; transition: opacity .15s;
+      background: #1a4731; color: #fff;
+    }
+    .btn:active { opacity: .85; }
+  </style>
+</head>
+<body>
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) { tg.ready(); tg.expand(); }
+  </script>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">Prefeitura de Crateús · Seplati</div>
+    <div class="hero-icon-wrap">🖥️</div>
+    <h1>SAGED</h1>
+    <p>Sistema de Gerenciamento de Demandas de Suporte de TI do município de Crateús.</p>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat-item"><div class="val">2</div><div class="lbl">Especialidades</div></div>
+    <div class="stat-item"><div class="val">22</div><div class="lbl">Secretarias</div></div>
+    <div class="stat-item"><div class="val">Sub-1h</div><div class="lbl">1º Atendimento</div></div>
+  </div>
+
+  <div class="content">
+
+    <!-- O QUE É -->
+    <div class="section">
+      <div class="section-label">O que é</div>
+      <div class="section-title">Suporte de TI direto no Telegram</div>
+      <div class="section-text">
+        O SAGED centraliza todos os chamados de suporte técnico da Prefeitura de Crateús.
+        Servidores municipais podem abrir, acompanhar e encerrar chamados sem sair do Telegram —
+        sem ligações, sem filas, sem papel.
+      </div>
+    </div>
+
+    <!-- COMO FUNCIONA -->
+    <div class="section">
+      <div class="section-label">Como funciona</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num-wrap">
+            <div class="step-num">1</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="step-body">
+            <strong>Validar número</strong>
+            <span>Compartilhe seu contato para vincular o seu número ao sistema. Um administrador libera seu acesso.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num-wrap">
+            <div class="step-num">2</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="step-body">
+            <strong>Abrir chamado</strong>
+            <span>Escolha o tipo de suporte, informe o título e descreva o problema. Um protocolo único é gerado na hora.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num-wrap">
+            <div class="step-num">3</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="step-body">
+            <strong>Técnico assume</strong>
+            <span>Um técnico da Seplati recebe o chamado, registra o equipamento e inicia o atendimento.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num-wrap">
+            <div class="step-num">4</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="step-body">
+            <strong>Problema resolvido</strong>
+            <span>Você recebe a confirmação de conclusão com o protocolo do chamado.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SERVIÇOS -->
+    <div class="section">
+      <div class="section-label">Especialidades</div>
+      <div class="services">
+        <div class="service-card">
+          <div class="service-icon"><i class="ti ti-tool"></i></div>
+          <div>
+            <div class="service-name">Manutenção</div>
+            <div class="service-desc">Computadores, impressoras, periféricos e equipamentos de TI.</div>
+          </div>
+        </div>
+        <div class="service-card">
+          <div class="service-icon"><i class="ti ti-wifi"></i></div>
+          <div>
+            <div class="service-name">Internet</div>
+            <div class="service-desc">Conectividade, roteadores, switches e infraestrutura de rede.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DESTAQUE -->
+    <div class="section">
+      <div class="highlight">
+        <i class="ti ti-shield-check"></i>
+        <div class="highlight-text">
+          <strong>Rastreável e transparente</strong>
+          <span>Cada chamado tem protocolo, histórico de movimentações e registro do técnico responsável. Tudo auditável.</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTÃO FIXO -->
+  <div class="bottom-cta">
+    <button class="btn" onclick="window.Telegram?.WebApp?.close()">Entendido — Fechar</button>
+  </div>
+
 </body>
 </html>
 """;

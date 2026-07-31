@@ -16,7 +16,7 @@ public class SagedSecurityConfig {
     @Order(0)
     public SecurityFilterChain telegramPublicChain(HttpSecurity http) throws Exception {
         return http
-            .securityMatcher("/api/v1/saged/telegram/webhook", "/telegram/app", "/telegram/app/**", "/api/v1/saged/telegram/app", "/api/v1/saged/telegram/app/**")
+            .securityMatcher("/api/v1/saged/telegram/webhook", "/telegram/app", "/telegram/app/**", "/telegram/info", "/telegram/info/**", "/api/v1/saged/telegram/app", "/api/v1/saged/telegram/app/**")
             .csrf(csrf -> csrf.disable())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())

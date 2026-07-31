@@ -31,6 +31,7 @@ public class TelegramBotService {
     private final BotProcessedMessageRepository processedRepository;
     private final TelegramSender sender;
     private final String miniAppUrl;
+    private final String infoUrl;
 
     public TelegramBotService(DemandService demandService,
                                TelegramRequesterRepository requesterRepository,
@@ -44,6 +45,7 @@ public class TelegramBotService {
         this.processedRepository = processedRepository;
         this.sender = sender;
         this.miniAppUrl = deriveMiniAppUrl(props.getWebhookUrl());
+        this.infoUrl = deriveInfoUrl(props.getWebhookUrl());
     }
 
     public void handleUpdate(TelegramUpdate update) {
@@ -64,9 +66,8 @@ public class TelegramBotService {
         String data = callback.getData();
 
         switch (data) {
-            case "conhecer_saged" -> sender.sendSagedInfo(chatId);
             case "validar_numero" -> sender.sendContactRequest(chatId);
-            default -> sender.sendMainMenu(chatId);
+            default -> sender.sendMainMenu(chatId, infoUrl);
         }
     }
 
@@ -104,7 +105,7 @@ public class TelegramBotService {
         Optional<TelegramRequesterEntity> requesterOpt = requesterRepository.findByTelegramChatId(telegramUserId);
 
         if (requesterOpt.isEmpty()) {
-            sender.sendMainMenu(chatId);
+            sender.sendMainMenu(chatId, infoUrl);
             return;
         }
 
@@ -274,6 +275,16 @@ public class TelegramBotService {
             return uri.getScheme() + "://" + uri.getHost() + "/telegram/app";
         } catch (Exception e) {
             return webhookUrl.replaceFirst("/api/.*", "/telegram/app");
+        }
+    }
+
+    private static String deriveInfoUrl(String webhookUrl) {
+        if (webhookUrl == null || webhookUrl.isBlank()) return "https://example.com/telegram/info";
+        try {
+            URI uri = URI.create(webhookUrl);
+            return uri.getScheme() + "://" + uri.getHost() + "/telegram/info";
+        } catch (Exception e) {
+            return webhookUrl.replaceFirst("/api/.*", "/telegram/info");
         }
     }
 }
