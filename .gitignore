@@ -3,9 +3,11 @@ build/
 *.class
 out/
 .idea/
+.vscode/
 *.iml
 docker/keycloak/realm-bcm-sdk.json.bak
 .env
 *.env
 CONTEXTO_PROJETO_SAGED.md
 **/application-local.yml
+SAGED_FrontEnd/

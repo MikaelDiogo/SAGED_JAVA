@@ -45,6 +45,9 @@ public class DevHostSecurityConfig {
 					auth.requestMatchers(HttpMethod.GET, "/api/v1/*/hello").permitAll();
 					// Module webhooks (Telegram/WhatsApp style) — authenticated by secret in the module.
 					auth.requestMatchers(HttpMethod.POST, "/api/v1/*/webhooks/**").permitAll();
+					// Telegram Mini App — authenticated by Telegram initData, not JWT.
+					auth.requestMatchers("/telegram/app", "/telegram/app/**").permitAll();
+					auth.requestMatchers("/api/v1/saged/telegram/app/**").permitAll();
 					if (securityProperties.jwtEnabled()) {
 						auth.anyRequest().authenticated();
 					} else {

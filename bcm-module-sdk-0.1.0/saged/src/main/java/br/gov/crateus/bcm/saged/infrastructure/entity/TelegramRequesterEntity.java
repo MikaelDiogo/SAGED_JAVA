@@ -3,6 +3,8 @@ package br.gov.crateus.bcm.saged.infrastructure.entity;
 import br.gov.crateus.bcm.sdk.persistence.SdkAuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.util.UUID;
 
@@ -19,11 +21,12 @@ public class TelegramRequesterEntity extends SdkAuditableEntity {
     @Column(name = "display_name", length = 255)
     private String displayName;
 
-    @Column(name = "department_id", nullable = false)
+    @Column(name = "department_id")
     private UUID departmentId;
 
-    @Column(name = "is_active", nullable = false)
-    private boolean active = true;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20, nullable = false)
+    private TelegramRequesterStatus status = TelegramRequesterStatus.PENDING;
 
     public String getTelegramChatId() { return telegramChatId; }
     public void setTelegramChatId(String telegramChatId) { this.telegramChatId = telegramChatId; }
@@ -37,6 +40,6 @@ public class TelegramRequesterEntity extends SdkAuditableEntity {
     public UUID getDepartmentId() { return departmentId; }
     public void setDepartmentId(UUID departmentId) { this.departmentId = departmentId; }
 
-    public boolean isActive() { return active; }
-    public void setActive(boolean active) { this.active = active; }
+    public TelegramRequesterStatus getStatus() { return status; }
+    public void setStatus(TelegramRequesterStatus status) { this.status = status; }
 }

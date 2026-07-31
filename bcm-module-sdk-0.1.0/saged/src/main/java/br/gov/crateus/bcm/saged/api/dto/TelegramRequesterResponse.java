@@ -11,7 +11,7 @@ public class TelegramRequesterResponse {
     private String phoneNumber;
     private String displayName;
     private UUID departmentId;
-    private boolean active;
+    private String status;
     private OffsetDateTime createdAt;
     private String createdBy;
 
@@ -22,7 +22,7 @@ public class TelegramRequesterResponse {
         r.phoneNumber = e.getPhoneNumber();
         r.displayName = e.getDisplayName();
         r.departmentId = e.getDepartmentId();
-        r.active = e.isActive();
+        r.status = e.getStatus().name();
         r.createdAt = e.getCreatedAt();
         r.createdBy = e.getCreatedBy();
         return r;
@@ -33,7 +33,7 @@ public class TelegramRequesterResponse {
     public String getPhoneNumber() { return phoneNumber; }
     public String getDisplayName() { return displayName; }
     public UUID getDepartmentId() { return departmentId; }
-    public boolean isActive() { return active; }
+    public String getStatus() { return status; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public String getCreatedBy() { return createdBy; }
 }

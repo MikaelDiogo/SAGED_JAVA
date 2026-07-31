@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DemandService {
 
     private static final Map<DemandStatus, Set<DemandStatus>> VALID_TRANSITIONS = Map.of(
-        DemandStatus.TODO, Set.of(DemandStatus.IN_PROGRESS),
+        DemandStatus.TODO,        Set.of(DemandStatus.IN_PROGRESS),
         DemandStatus.IN_PROGRESS, Set.of(DemandStatus.DONE, DemandStatus.INTERRUPTED)
     );
 

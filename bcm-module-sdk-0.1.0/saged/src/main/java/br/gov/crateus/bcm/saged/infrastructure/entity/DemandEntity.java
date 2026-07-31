@@ -35,7 +35,7 @@ public class DemandEntity extends SdkAuditableEntity {
     @Column(name = "department_id", nullable = false)
     private UUID departmentId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "specialty_id", nullable = false)
     private SpecialtyEntity specialty;
 

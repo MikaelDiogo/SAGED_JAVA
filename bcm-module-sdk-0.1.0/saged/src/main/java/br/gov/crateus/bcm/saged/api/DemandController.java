@@ -86,7 +86,7 @@ public class DemandController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "Change demand status")
     public DemandResponse changeStatus(@PathVariable UUID id,
                                         @RequestBody @Valid ChangeStatusRequest request,
@@ -96,7 +96,7 @@ public class DemandController {
     }
 
     @PatchMapping("/{id}/assignee")
-    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "Assign a technician to a demand")
     public DemandResponse assign(@PathVariable UUID id,
                                   @RequestBody @Valid AssignDemandRequest request,
@@ -123,10 +123,13 @@ public class DemandController {
     private String resolveTopRole() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         for (var a : auth.getAuthorities()) {
-            if (a.getAuthority().equals("SAGED_ADMIN_GERAL")) return "SAGED_ADMIN_GERAL";
+            if (a.getAuthority().equals("ROLE_SAGED_ADMIN_GERAL")) return "SAGED_ADMIN_GERAL";
         }
         for (var a : auth.getAuthorities()) {
-            if (a.getAuthority().equals("SAGED_ADMIN_SETOR")) return "SAGED_ADMIN_SETOR";
+            if (a.getAuthority().equals("ROLE_SAGED_ADMIN_SETOR")) return "SAGED_ADMIN_SETOR";
+        }
+        for (var a : auth.getAuthorities()) {
+            if (a.getAuthority().equals("ROLE_SAGED_TECNICO_LIDER")) return "SAGED_TECNICO_LIDER";
         }
         return "SAGED_TECNICO";
     }

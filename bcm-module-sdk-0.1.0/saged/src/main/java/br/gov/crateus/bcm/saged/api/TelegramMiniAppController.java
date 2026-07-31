@@ -1,0 +1,374 @@
+package br.gov.crateus.bcm.saged.api;
+
+import br.gov.crateus.bcm.saged.application.DemandService;
+import br.gov.crateus.bcm.saged.config.SagedTelegramProperties;
+import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramRequesterEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramRequesterStatus;
+import br.gov.crateus.bcm.saged.infrastructure.repository.TelegramRequesterRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+@RestController
+@Tag(name = "saged-telegram-miniapp")
+public class TelegramMiniAppController {
+
+    private final TelegramRequesterRepository requesterRepository;
+    private final DemandService demandService;
+
+    public TelegramMiniAppController(TelegramRequesterRepository requesterRepository,
+                                      DemandService demandService,
+                                      SagedTelegramProperties props) {
+        this.requesterRepository = requesterRepository;
+        this.demandService = demandService;
+    }
+
+    @GetMapping(value = "/telegram/app", produces = MediaType.TEXT_HTML_VALUE)
+    public String miniApp(HttpServletResponse response) {
+        response.setHeader("ngrok-skip-browser-warning", "69420");
+        response.setHeader("Cache-Control", "no-store");
+        return buildHtml();
+    }
+
+    // /api/v1/saged/webhooks/** já é público pelo DevHostSecurityConfig
+    @PostMapping("/api/v1/saged/webhooks/miniapp/demand")
+    public ResponseEntity<Map<String, String>> createDemand(@RequestBody MiniAppDemandRequest request,
+                                                             HttpServletResponse response) {
+        response.setHeader("ngrok-skip-browser-warning", "69420");
+        String telegramUserId = resolveUserId(request);
+
+        var opt = requesterRepository.findByTelegramChatId(telegramUserId);
+        if (opt.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "chatId=[" + telegramUserId + "] não existe no banco");
+        }
+        if (opt.get().getStatus() != TelegramRequesterStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "chatId=[" + telegramUserId + "] status=" + opt.get().getStatus().name());
+        }
+        TelegramRequesterEntity requester = opt.get();
+
+        DemandEntity demand = demandService.create(
+            request.getTitle(),
+            "Criado via Telegram",
+            request.getSpecialtyCode(),
+            null,
+            requester.getId(),
+            requester.getDepartmentId(),
+            "telegram-app:" + telegramUserId
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(Map.of("protocol", demand.getProtocol()));
+    }
+
+    private String resolveUserId(MiniAppDemandRequest request) {
+        // Fallback para dev: chatId enviado diretamente pelo cliente
+        if (request.getChatId() != null && !request.getChatId().isBlank()) {
+            return request.getChatId();
+        }
+        // Produção: extrai do initData do Telegram
+        if (request.getInitData() != null && !request.getInitData().isBlank()) {
+            return extractUserIdFromInitData(request.getInitData());
+        }
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "chatId ou initData obrigatório");
+    }
+
+    private String extractUserIdFromInitData(String initData) {
+        try {
+            Map<String, String> params = new LinkedHashMap<>();
+            for (String part : initData.split("&")) {
+                int eq = part.indexOf('=');
+                if (eq > 0) params.put(part.substring(0, eq), part.substring(eq + 1));
+            }
+            String userJson = params.get("user");
+            if (userJson == null) throw new IllegalArgumentException("user field missing");
+            JsonNode node = new ObjectMapper().readTree(URLDecoder.decode(userJson, StandardCharsets.UTF_8));
+            return node.get("id").asText();
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "initData inválido: " + e.getMessage());
+        }
+    }
+
+    private static String buildHtml() {
+        return """
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <title>SAGED — Abrir Chamado</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #f1f3f5 !important;
+      color: #212529;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .header {
+      background: #1a4731;
+      padding: 14px 20px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header-logo {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .header-text h1 { color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.2px; }
+    .header-text p  { color: rgba(255,255,255,0.65); font-size: 11px; margin-top: 1px; }
+
+    .page { display: none; padding: 20px 16px; }
+    .page.active { display: block; }
+
+    .section-tag {
+      font-size: 10px; font-weight: 700; color: #2d9c5f;
+      text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 6px;
+    }
+    .section-title { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+    .section-sub   { font-size: 13px; color: #6c757d; margin-bottom: 22px; line-height: 1.5; }
+
+    /* Cards de especialidade */
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .spec-card {
+      background: #fff;
+      border: 2px solid #e9ecef;
+      border-bottom: 4px solid #e9ecef;
+      border-radius: 14px;
+      padding: 22px 12px 18px;
+      cursor: pointer;
+      text-align: center;
+      transition: border-color .15s, transform .15s, box-shadow .15s;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .spec-card:active { transform: scale(0.96); }
+    .spec-card .icon-wrap {
+      width: 56px; height: 56px; border-radius: 14px;
+      background: #e8f7ef; display: flex; align-items: center; justify-content: center;
+    }
+    .spec-card .icon-wrap i { font-size: 28px; color: #2d9c5f; }
+    .spec-card .label { font-size: 14px; font-weight: 700; color: #212529; }
+    .spec-card .desc  { font-size: 11px; color: #868e96; line-height: 1.4; }
+    .spec-card:hover,
+    .spec-card.selected {
+      border-color: #2d9c5f;
+      border-bottom-color: #2d9c5f;
+      box-shadow: 0 4px 16px rgba(45,156,95,.15);
+    }
+
+    /* Formulário */
+    .selected-badge {
+      display: flex; align-items: center; gap: 10px;
+      background: #f0faf4; border: 1.5px solid #2d9c5f;
+      border-radius: 12px; padding: 10px 14px;
+      margin-bottom: 20px; cursor: pointer;
+    }
+    .selected-badge .badge-icon { font-size: 22px; }
+    .selected-badge .badge-name { font-size: 14px; font-weight: 600; color: #1a4731; flex: 1; }
+    .selected-badge .change { font-size: 11px; color: #2d9c5f; font-weight: 600; }
+
+    label { display: block; font-size: 12px; font-weight: 600; color: #495057; margin-bottom: 6px; }
+    .field { margin-bottom: 16px; }
+    input[type=text] {
+      width: 100%; padding: 12px 14px;
+      border: 1.5px solid #dee2e6; border-radius: 10px;
+      font-size: 15px; font-family: inherit; color: #212529;
+      background: #fff; outline: none;
+      transition: border-color .2s;
+    }
+    input[type=text]:focus { border-color: #2d9c5f; }
+
+    .btn {
+      width: 100%; padding: 14px; border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 600; font-family: inherit;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .btn:active { opacity: .85; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: #1a4731; color: #fff; }
+
+    .error-box {
+      background: #fff5f5; border: 1.5px solid #ffc9c9;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 13px; color: #c92a2a;
+      margin-bottom: 14px; display: none;
+    }
+    .error-box.show { display: block; }
+
+    /* Sucesso */
+    .success-wrap {
+      min-height: 65vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 24px;
+    }
+    .success-icon { font-size: 64px; margin-bottom: 16px; }
+    .success-wrap h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .success-wrap p  { font-size: 14px; color: #6c757d; margin-bottom: 6px; }
+    .protocol {
+      background: #f0faf4; border: 1.5px solid #2d9c5f;
+      border-radius: 10px; padding: 10px 20px;
+      font-size: 18px; font-weight: 700; font-family: monospace;
+      color: #1a4731; margin: 12px 0 24px; letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <div class="header-logo">🎫</div>
+  <div class="header-text">
+    <h1>SAGED</h1>
+    <p>Sistema de Gerenciamento de Demandas</p>
+  </div>
+</div>
+
+<!-- Passo 1: escolha da especialidade -->
+<div class="page active" id="p1">
+  <div class="section-tag">Passo 1 de 2</div>
+  <div class="section-title">Tipo de atendimento</div>
+  <div class="section-sub">Selecione a área do seu chamado.</div>
+  <div class="cards">
+    <div class="spec-card" onclick="pick('MANUT','ti-tool','Manutenção','Hardware e periféricos')">
+      <div class="icon-wrap"><i class="ti ti-tool"></i></div>
+      <div class="label">Manutenção</div>
+      <div class="desc">Hardware e periféricos</div>
+    </div>
+    <div class="spec-card" onclick="pick('INTERNET','ti-wifi','Internet','Redes e conectividade')">
+      <div class="icon-wrap"><i class="ti ti-wifi"></i></div>
+      <div class="label">Internet</div>
+      <div class="desc">Redes e conectividade</div>
+    </div>
+  </div>
+</div>
+
+<!-- Passo 2: descrição -->
+<div class="page" id="p2">
+  <div class="section-tag">Passo 2 de 2</div>
+  <div class="section-title">Descreva o problema</div>
+  <div class="section-sub">Seja objetivo — quanto mais detalhes, mais rápido o atendimento.</div>
+
+  <div class="selected-badge" onclick="goBack()">
+    <span class="badge-icon icon-wrap" id="bIconWrap" style="width:32px;height:32px;border-radius:8px;"><i id="bIcon" class="ti"></i></span>
+    <span class="badge-name" id="bLabel"></span>
+    <span class="change">Alterar</span>
+  </div>
+
+  <div class="error-box" id="errBox"></div>
+
+  <div class="field">
+    <label for="titleIn">Título do chamado *</label>
+    <input type="text" id="titleIn" placeholder="Ex.: Computador não liga" maxlength="255"/>
+  </div>
+
+  <button class="btn btn-primary" id="submitBtn" onclick="submit()">Abrir Chamado</button>
+</div>
+
+<!-- Sucesso -->
+<div class="page" id="p3">
+  <div class="success-wrap">
+    <div class="success-icon">✅</div>
+    <h2>Chamado aberto!</h2>
+    <p>Registrado com sucesso. Protocolo:</p>
+    <div class="protocol" id="proto"></div>
+    <button class="btn btn-primary" onclick="window.Telegram?.WebApp?.close()">Fechar</button>
+  </div>
+</div>
+
+<script>
+  const tg = window.Telegram?.WebApp;
+  if (tg) { tg.ready(); tg.expand(); }
+
+  const params = new URLSearchParams(window.location.search);
+  const CHAT_ID = params.get('chatId') || '';
+
+  let code = '', icon = '', label = '';
+
+  function pick(c, i, l) {
+    code = c; icon = i; label = l;
+    const el = document.getElementById('bIcon');
+    el.className = 'ti ' + i;
+    document.getElementById('bLabel').textContent = l;
+    document.getElementById('titleIn').value = '';
+    document.getElementById('errBox').classList.remove('show');
+    show('p2');
+    document.getElementById('titleIn').focus();
+  }
+
+  function goBack() { show('p1'); }
+
+  function show(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function submit() {
+    const title = document.getElementById('titleIn').value.trim();
+    const err   = document.getElementById('errBox');
+    const btn   = document.getElementById('submitBtn');
+    if (!title) { err.textContent = 'Informe o título do chamado.'; err.classList.add('show'); return; }
+
+    err.classList.remove('show');
+    btn.disabled = true;
+    btn.textContent = 'Enviando…';
+
+    try {
+      tg.sendData(JSON.stringify({ specialtyCode: code, title: title }));
+      // sendData() fecha o mini app automaticamente — o bot processa e responde
+    } catch (e) {
+      err.textContent = 'Erro ao enviar: ' + e.message;
+      err.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Abrir Chamado';
+    }
+  }
+</script>
+</body>
+</html>
+""";
+    }
+
+    public static class MiniAppDemandRequest {
+        private String initData;
+        private String chatId;
+        private String specialtyCode;
+        private String title;
+
+        public String getInitData()     { return initData; }
+        public void setInitData(String v){ this.initData = v; }
+        public String getChatId()       { return chatId; }
+        public void setChatId(String v) { this.chatId = v; }
+        public String getSpecialtyCode(){ return specialtyCode; }
+        public void setSpecialtyCode(String v){ this.specialtyCode = v; }
+        public String getTitle()        { return title; }
+        public void setTitle(String v)  { this.title = v; }
+    }
+}

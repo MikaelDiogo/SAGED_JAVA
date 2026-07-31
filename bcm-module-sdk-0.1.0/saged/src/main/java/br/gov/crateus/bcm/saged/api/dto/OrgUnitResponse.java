@@ -8,16 +8,19 @@ public class OrgUnitResponse {
     private UUID id;
     private String code;
     private String name;
+    private String leadership;
 
     public static OrgUnitResponse from(OrgUnitEntity e) {
         var r = new OrgUnitResponse();
         r.id = e.getId();
         r.code = e.getCode();
         r.name = e.getName();
+        r.leadership = e.getLeadership();
         return r;
     }
 
     public UUID getId() { return id; }
     public String getCode() { return code; }
     public String getName() { return name; }
+    public String getLeadership() { return leadership; }
 }
