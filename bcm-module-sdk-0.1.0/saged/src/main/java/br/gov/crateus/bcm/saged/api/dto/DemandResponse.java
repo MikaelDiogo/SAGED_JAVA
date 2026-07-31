@@ -20,6 +20,9 @@ public class DemandResponse {
     private String assetTag;
     private String currentTechnicalNote;
     private UUID assigneeUserId;
+    private String equipmentName;
+    private String equipmentModel;
+    private Boolean isRented;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
     private String createdBy;
@@ -42,6 +45,9 @@ public class DemandResponse {
         r.assetTag = d.getAssetTag();
         r.currentTechnicalNote = d.getCurrentTechnicalNote();
         r.assigneeUserId = d.getAssigneeUserId();
+        r.equipmentName = d.getEquipmentName();
+        r.equipmentModel = d.getEquipmentModel();
+        r.isRented = d.getIsRented();
         r.createdAt = d.getCreatedAt();
         r.updatedAt = d.getUpdatedAt();
         r.createdBy = d.getCreatedBy();
@@ -62,6 +68,9 @@ public class DemandResponse {
     public String getAssetTag() { return assetTag; }
     public String getCurrentTechnicalNote() { return currentTechnicalNote; }
     public UUID getAssigneeUserId() { return assigneeUserId; }
+    public String getEquipmentName() { return equipmentName; }
+    public String getEquipmentModel() { return equipmentModel; }
+    public Boolean getIsRented() { return isRented; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
     public String getCreatedBy() { return createdBy; }

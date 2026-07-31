@@ -5,6 +5,7 @@ import br.gov.crateus.bcm.saged.api.dto.ChangeStatusRequest;
 import br.gov.crateus.bcm.saged.api.dto.CreateDemandRequest;
 import br.gov.crateus.bcm.saged.api.dto.DemandHistoryResponse;
 import br.gov.crateus.bcm.saged.api.dto.DemandResponse;
+import br.gov.crateus.bcm.saged.api.dto.UpdateEquipmentRequest;
 import br.gov.crateus.bcm.saged.api.dto.UpdateNoteRequest;
 import br.gov.crateus.bcm.saged.application.DemandService;
 import br.gov.crateus.bcm.saged.domain.DemandStatus;
@@ -111,6 +112,17 @@ public class DemandController {
                                       @RequestBody @Valid UpdateNoteRequest request,
                                       @AuthenticationPrincipal Jwt jwt) {
         return DemandResponse.from(demandService.updateNote(id, request.getNote(), jwt.getSubject()));
+    }
+
+    @PatchMapping("/{id}/equipment")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @Operation(summary = "Register equipment details on a demand")
+    public DemandResponse updateEquipment(@PathVariable UUID id,
+                                           @RequestBody UpdateEquipmentRequest request,
+                                           @AuthenticationPrincipal Jwt jwt) {
+        return DemandResponse.from(demandService.updateEquipment(
+            id, request.getIsRented(), request.getAssetTag(),
+            request.getEquipmentName(), request.getEquipmentModel(), jwt.getSubject()));
     }
 
     @GetMapping("/{id}/history")

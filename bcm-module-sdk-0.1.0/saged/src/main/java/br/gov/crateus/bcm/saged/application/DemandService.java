@@ -140,6 +140,19 @@ public class DemandService {
         return demandRepository.findByProtocol(protocol);
     }
 
+    public DemandEntity updateEquipment(UUID demandId, Boolean isRented, String assetTag,
+                                         String equipmentName, String equipmentModel, String actor) {
+        DemandEntity demand = findById(demandId);
+        demand.setIsRented(isRented);
+        if (assetTag != null) demand.setAssetTag(assetTag.isBlank() ? null : assetTag.trim());
+        if (equipmentName != null) demand.setEquipmentName(equipmentName.isBlank() ? null : equipmentName.trim());
+        if (equipmentModel != null) demand.setEquipmentModel(equipmentModel.isBlank() ? null : equipmentModel.trim());
+        demand.setUpdatedBy(actor);
+        demand = demandRepository.save(demand);
+        recordHistory(demand, "EQUIPMENT_UPDATED", null, actor);
+        return demand;
+    }
+
     @Transactional(readOnly = true)
     public List<DemandHistoryEntity> getHistory(UUID demandId) {
         if (!demandRepository.existsById(demandId)) {

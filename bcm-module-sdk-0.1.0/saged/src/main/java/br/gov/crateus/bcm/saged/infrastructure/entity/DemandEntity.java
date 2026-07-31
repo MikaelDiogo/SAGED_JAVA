@@ -48,6 +48,15 @@ public class DemandEntity extends SdkAuditableEntity {
     @Column(name = "assignee_user_id")
     private UUID assigneeUserId;
 
+    @Column(name = "equipment_name", length = 255)
+    private String equipmentName;
+
+    @Column(name = "equipment_model", length = 128)
+    private String equipmentModel;
+
+    @Column(name = "is_rented")
+    private Boolean isRented;
+
     public String getProtocol() { return protocol; }
     public void setProtocol(String protocol) { this.protocol = protocol; }
 
@@ -77,4 +86,13 @@ public class DemandEntity extends SdkAuditableEntity {
 
     public UUID getAssigneeUserId() { return assigneeUserId; }
     public void setAssigneeUserId(UUID assigneeUserId) { this.assigneeUserId = assigneeUserId; }
+
+    public String getEquipmentName() { return equipmentName; }
+    public void setEquipmentName(String equipmentName) { this.equipmentName = equipmentName; }
+
+    public String getEquipmentModel() { return equipmentModel; }
+    public void setEquipmentModel(String equipmentModel) { this.equipmentModel = equipmentModel; }
+
+    public Boolean getIsRented() { return isRented; }
+    public void setIsRented(Boolean isRented) { this.isRented = isRented; }
 }

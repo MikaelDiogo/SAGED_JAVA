@@ -130,8 +130,11 @@ public class TelegramBotService {
             JsonNode node = new ObjectMapper().readTree(data);
             String specialtyCode = node.get("specialtyCode").asText();
             String title = node.get("title").asText();
+            String description = node.has("description") && !node.get("description").asText().isBlank()
+                ? node.get("description").asText()
+                : "Aberto via Telegram";
             DemandEntity demand = demandService.create(
-                title, "Criado via Telegram",
+                title, description,
                 specialtyCode, null,
                 requester.getId(), requester.getDepartmentId(),
                 "telegram-app:" + telegramUserId

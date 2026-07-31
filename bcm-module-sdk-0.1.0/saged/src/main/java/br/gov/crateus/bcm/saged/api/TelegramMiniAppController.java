@@ -112,16 +112,16 @@ public class TelegramMiniAppController {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
-  <title>SAGED — Abrir Chamado</title>
+  <title>SAGED — Suporte de TI</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       font-family: 'Inter', -apple-system, sans-serif;
-      background: #f1f3f5 !important;
+      background: #f1f3f5;
       color: #212529;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
@@ -129,43 +129,60 @@ public class TelegramMiniAppController {
     .header {
       background: #1a4731;
       padding: 14px 20px 12px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      position: sticky;
-      top: 0;
-      z-index: 10;
+      display: flex; align-items: center; gap: 12px;
+      position: sticky; top: 0; z-index: 10;
     }
     .header-logo {
-      width: 36px; height: 36px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px; flex-shrink: 0;
+      width: 38px; height: 38px;
+      background: rgba(255,255,255,0.15); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
     }
-    .header-text h1 { color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.2px; }
-    .header-text p  { color: rgba(255,255,255,0.65); font-size: 11px; margin-top: 1px; }
+    .header-text h1 { color: #fff; font-size: 15px; font-weight: 700; }
+    .header-text p  { color: rgba(255,255,255,0.6); font-size: 11px; margin-top: 2px; }
 
-    .page { display: none; padding: 20px 16px; }
+    .page { display: none; padding: 20px 16px 32px; }
     .page.active { display: block; }
 
-    .section-tag {
-      font-size: 10px; font-weight: 700; color: #2d9c5f;
-      text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 6px;
-    }
-    .section-title { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
-    .section-sub   { font-size: 13px; color: #6c757d; margin-bottom: 22px; line-height: 1.5; }
+    .section-tag   { font-size: 10px; font-weight: 700; color: #2d9c5f; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 6px; }
+    .section-title { font-size: 20px; font-weight: 800; color: #1a1a2e; margin-bottom: 6px; }
+    .section-sub   { font-size: 13px; color: #6c757d; margin-bottom: 24px; line-height: 1.6; }
 
-    /* Cards de especialidade */
+    /* Apresentação */
+    .intro-hero {
+      background: linear-gradient(135deg, #1a4731, #2d9c5f);
+      border-radius: 18px; padding: 28px 20px; text-align: center; margin-bottom: 22px;
+    }
+    .intro-hero .hero-icon { font-size: 52px; margin-bottom: 10px; }
+    .intro-hero h2 { color: #fff; font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .intro-hero p  { color: rgba(255,255,255,0.8); font-size: 13px; line-height: 1.5; }
+
+    .flow-steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+    .flow-step {
+      background: #fff; border-radius: 12px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 14px;
+      border-left: 4px solid #2d9c5f;
+    }
+    .flow-step .step-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: #e8f7ef; color: #1a4731;
+      font-size: 14px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .flow-step .step-text strong { display: block; font-size: 13px; font-weight: 700; color: #212529; }
+    .flow-step .step-text span   { font-size: 12px; color: #868e96; }
+
+    .info-note {
+      background: #fff8e1; border: 1px solid #ffe082; border-radius: 10px;
+      padding: 12px 14px; font-size: 12px; color: #795548; margin-bottom: 24px;
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+    .info-note i { font-size: 16px; color: #f59f00; flex-shrink: 0; margin-top: 1px; }
+
+    /* Cards especialidade */
     .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .spec-card {
-      background: #fff;
-      border: 2px solid #e9ecef;
-      border-bottom: 4px solid #e9ecef;
-      border-radius: 14px;
-      padding: 22px 12px 18px;
-      cursor: pointer;
-      text-align: center;
+      background: #fff; border: 2px solid #e9ecef; border-bottom: 4px solid #e9ecef;
+      border-radius: 14px; padding: 22px 12px 18px; cursor: pointer; text-align: center;
       transition: border-color .15s, transform .15s, box-shadow .15s;
       display: flex; flex-direction: column; align-items: center; gap: 10px;
       -webkit-tap-highlight-color: transparent;
@@ -178,10 +195,8 @@ public class TelegramMiniAppController {
     .spec-card .icon-wrap i { font-size: 28px; color: #2d9c5f; }
     .spec-card .label { font-size: 14px; font-weight: 700; color: #212529; }
     .spec-card .desc  { font-size: 11px; color: #868e96; line-height: 1.4; }
-    .spec-card:hover,
-    .spec-card.selected {
-      border-color: #2d9c5f;
-      border-bottom-color: #2d9c5f;
+    .spec-card:hover, .spec-card.selected {
+      border-color: #2d9c5f; border-bottom-color: #2d9c5f;
       box-shadow: 0 4px 16px rgba(45,156,95,.15);
     }
 
@@ -189,23 +204,22 @@ public class TelegramMiniAppController {
     .selected-badge {
       display: flex; align-items: center; gap: 10px;
       background: #f0faf4; border: 1.5px solid #2d9c5f;
-      border-radius: 12px; padding: 10px 14px;
-      margin-bottom: 20px; cursor: pointer;
+      border-radius: 12px; padding: 10px 14px; margin-bottom: 20px; cursor: pointer;
     }
-    .selected-badge .badge-icon { font-size: 22px; }
     .selected-badge .badge-name { font-size: 14px; font-weight: 600; color: #1a4731; flex: 1; }
     .selected-badge .change { font-size: 11px; color: #2d9c5f; font-weight: 600; }
 
     label { display: block; font-size: 12px; font-weight: 600; color: #495057; margin-bottom: 6px; }
     .field { margin-bottom: 16px; }
-    input[type=text] {
+    input[type=text], textarea {
       width: 100%; padding: 12px 14px;
       border: 1.5px solid #dee2e6; border-radius: 10px;
       font-size: 15px; font-family: inherit; color: #212529;
-      background: #fff; outline: none;
-      transition: border-color .2s;
+      background: #fff; outline: none; transition: border-color .2s;
+      resize: none;
     }
-    input[type=text]:focus { border-color: #2d9c5f; }
+    input[type=text]:focus, textarea:focus { border-color: #2d9c5f; }
+    .optional-tag { font-size: 10px; color: #adb5bd; font-weight: 500; margin-left: 4px; }
 
     .btn {
       width: 100%; padding: 14px; border: none; border-radius: 12px;
@@ -215,24 +229,22 @@ public class TelegramMiniAppController {
     .btn:active { opacity: .85; }
     .btn:disabled { opacity: .5; cursor: not-allowed; }
     .btn-primary { background: #1a4731; color: #fff; }
+    .btn-outline  { background: #fff; color: #1a4731; border: 1.5px solid #1a4731; margin-bottom: 10px; }
 
     .error-box {
       background: #fff5f5; border: 1.5px solid #ffc9c9;
       border-radius: 10px; padding: 10px 14px;
-      font-size: 13px; color: #c92a2a;
-      margin-bottom: 14px; display: none;
+      font-size: 13px; color: #c92a2a; margin-bottom: 14px; display: none;
     }
     .error-box.show { display: block; }
 
     /* Sucesso */
     .success-wrap {
-      min-height: 65vh;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      text-align: center; padding: 24px;
+      min-height: 65vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center; padding: 24px;
     }
     .success-icon { font-size: 64px; margin-bottom: 16px; }
-    .success-wrap h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .success-wrap h2 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
     .success-wrap p  { font-size: 14px; color: #6c757d; margin-bottom: 6px; }
     .protocol {
       background: #f0faf4; border: 1.5px solid #2d9c5f;
@@ -247,12 +259,53 @@ public class TelegramMiniAppController {
   <div class="header-logo">🎫</div>
   <div class="header-text">
     <h1>SAGED</h1>
-    <p>Sistema de Gerenciamento de Demandas</p>
+    <p>Suporte de TI — Prefeitura de Crateús</p>
   </div>
 </div>
 
-<!-- Passo 1: escolha da especialidade -->
-<div class="page active" id="p1">
+<!-- Página 0: Apresentação -->
+<div class="page active" id="p0">
+  <div class="intro-hero">
+    <div class="hero-icon">🖥️</div>
+    <h2>Suporte de TI</h2>
+    <p>Abra chamados de manutenção e internet diretamente pelo Telegram, sem filas e sem ligações.</p>
+  </div>
+
+  <div class="section-tag">Como funciona</div>
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="step-num">1</div>
+      <div class="step-text">
+        <strong>Abra o chamado</strong>
+        <span>Informe o tipo de problema e descreva brevemente.</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">2</div>
+      <div class="step-text">
+        <strong>Técnico assume</strong>
+        <span>Um técnico da Seplati recebe e assume o atendimento.</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">3</div>
+      <div class="step-text">
+        <strong>Problema resolvido</strong>
+        <span>Você recebe a confirmação assim que o chamado é concluído.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-note">
+    <i class="ti ti-info-circle"></i>
+    <span>O tombamento (número de patrimônio) do equipamento <strong>não é solicitado aqui</strong> — o técnico registra esse dado ao recolher o equipamento.</span>
+  </div>
+
+  <button class="btn btn-primary" onclick="show('p1')">Abrir Chamado</button>
+</div>
+
+<!-- Página 1: Especialidade -->
+<div class="page" id="p1">
   <div class="section-tag">Passo 1 de 2</div>
   <div class="section-title">Tipo de atendimento</div>
   <div class="section-sub">Selecione a área do seu chamado.</div>
@@ -270,14 +323,16 @@ public class TelegramMiniAppController {
   </div>
 </div>
 
-<!-- Passo 2: descrição -->
+<!-- Página 2: Formulário -->
 <div class="page" id="p2">
   <div class="section-tag">Passo 2 de 2</div>
   <div class="section-title">Descreva o problema</div>
-  <div class="section-sub">Seja objetivo — quanto mais detalhes, mais rápido o atendimento.</div>
+  <div class="section-sub">Quanto mais detalhes, mais rápido o atendimento.</div>
 
-  <div class="selected-badge" onclick="goBack()">
-    <span class="badge-icon icon-wrap" id="bIconWrap" style="width:32px;height:32px;border-radius:8px;"><i id="bIcon" class="ti"></i></span>
+  <div class="selected-badge" onclick="show('p1')">
+    <div class="icon-wrap" style="width:32px;height:32px;border-radius:8px;flex-shrink:0;background:#e8f7ef;display:flex;align-items:center;justify-content:center;">
+      <i id="bIcon" class="ti" style="font-size:18px;color:#2d9c5f;"></i>
+    </div>
     <span class="badge-name" id="bLabel"></span>
     <span class="change">Alterar</span>
   </div>
@@ -286,19 +341,25 @@ public class TelegramMiniAppController {
 
   <div class="field">
     <label for="titleIn">Título do chamado *</label>
-    <input type="text" id="titleIn" placeholder="Ex.: Computador não liga" maxlength="255"/>
+    <input type="text" id="titleIn" placeholder="Ex.: Computador da recepção não liga" maxlength="255"/>
+  </div>
+
+  <div class="field">
+    <label for="descIn">Descrição <span class="optional-tag">opcional</span></label>
+    <textarea id="descIn" rows="3" placeholder="Descreva melhor o problema, quando começou, mensagens de erro..."></textarea>
   </div>
 
   <button class="btn btn-primary" id="submitBtn" onclick="submit()">Abrir Chamado</button>
 </div>
 
-<!-- Sucesso -->
+<!-- Página 3: Sucesso -->
 <div class="page" id="p3">
   <div class="success-wrap">
     <div class="success-icon">✅</div>
     <h2>Chamado aberto!</h2>
     <p>Registrado com sucesso. Protocolo:</p>
     <div class="protocol" id="proto"></div>
+    <p style="font-size:13px;color:#6c757d;margin-bottom:20px;">Um técnico entrará em contato em breve.</p>
     <button class="btn btn-primary" onclick="window.Telegram?.WebApp?.close()">Fechar</button>
   </div>
 </div>
@@ -310,28 +371,28 @@ public class TelegramMiniAppController {
   const params = new URLSearchParams(window.location.search);
   const CHAT_ID = params.get('chatId') || '';
 
-  let code = '', icon = '', label = '';
+  let code = '', iconCls = '', lbl = '';
 
   function pick(c, i, l) {
-    code = c; icon = i; label = l;
-    const el = document.getElementById('bIcon');
-    el.className = 'ti ' + i;
+    code = c; iconCls = i; lbl = l;
+    document.getElementById('bIcon').className = 'ti ' + i;
     document.getElementById('bLabel').textContent = l;
     document.getElementById('titleIn').value = '';
+    document.getElementById('descIn').value = '';
     document.getElementById('errBox').classList.remove('show');
     show('p2');
-    document.getElementById('titleIn').focus();
+    setTimeout(() => document.getElementById('titleIn').focus(), 100);
   }
-
-  function goBack() { show('p1'); }
 
   function show(id) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
   }
 
   function submit() {
     const title = document.getElementById('titleIn').value.trim();
+    const desc  = document.getElementById('descIn').value.trim();
     const err   = document.getElementById('errBox');
     const btn   = document.getElementById('submitBtn');
     if (!title) { err.textContent = 'Informe o título do chamado.'; err.classList.add('show'); return; }
@@ -340,9 +401,11 @@ public class TelegramMiniAppController {
     btn.disabled = true;
     btn.textContent = 'Enviando…';
 
+    const payload = { specialtyCode: code, title: title };
+    if (desc) payload.description = desc;
+
     try {
-      tg.sendData(JSON.stringify({ specialtyCode: code, title: title }));
-      // sendData() fecha o mini app automaticamente — o bot processa e responde
+      tg.sendData(JSON.stringify(payload));
     } catch (e) {
       err.textContent = 'Erro ao enviar: ' + e.message;
       err.classList.add('show');
