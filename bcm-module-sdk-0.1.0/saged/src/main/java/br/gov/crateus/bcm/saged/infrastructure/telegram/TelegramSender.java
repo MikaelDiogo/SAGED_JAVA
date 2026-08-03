@@ -53,6 +53,17 @@ public class TelegramSender {
         ));
     }
 
+    public void sendNotRegisteredMessage(long chatId) {
+        post(Map.of(
+            "chat_id", chatId,
+            "text", "❌ Você não possui um cadastro ativo no SAGED\\.\n\n" +
+                    "Seu número foi recebido, mas você ainda não foi cadastrado no sistema\\. " +
+                    "Solicite ao *administrador do seu setor* que aprove o seu acesso\\.",
+            "parse_mode", "MarkdownV2",
+            "reply_markup", Map.of("remove_keyboard", true)
+        ));
+    }
+
     public void sendPendingApprovalMessage(long chatId) {
         post(Map.of(
             "chat_id", chatId,

@@ -176,7 +176,7 @@ public class TelegramBotService {
         requester.setUpdatedBy("telegram:" + telegramUserId);
         requesterRepository.save(requester);
 
-        sender.sendPendingApprovalMessage(chatId);
+        sender.sendNotRegisteredMessage(chatId);
     }
 
     // ── Active user commands ──────────────────────────────────────────────────
