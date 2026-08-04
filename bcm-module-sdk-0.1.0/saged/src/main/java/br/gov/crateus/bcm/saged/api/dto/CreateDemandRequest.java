@@ -7,11 +7,11 @@ import java.util.UUID;
 public class CreateDemandRequest {
 
     @NotBlank
-    @Size(min = 12, message = "Título deve ter no mínimo 12 caracteres")
+    @Size(min = 12, max = 255, message = "Título deve ter entre 12 e 255 caracteres")
     private String title;
 
     @NotBlank
-    @Size(min = 20, message = "Descrição deve ter no mínimo 20 caracteres")
+    @Size(min = 20, max = 3000, message = "Descrição deve ter entre 20 e 3000 caracteres")
     private String description;
 
     @NotBlank

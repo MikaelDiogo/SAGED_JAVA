@@ -74,6 +74,8 @@ public class DemandController {
         return ResponseEntity.status(HttpStatus.CREATED).body(DemandResponse.from(demand));
     }
 
+    private static final int MAX_PAGE_SIZE = 200;
+
     @GetMapping
     @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "List demands with optional filters — visibility enforced by role")
@@ -83,19 +85,24 @@ public class DemandController {
             @RequestParam(required = false) UUID departmentId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
+        Pageable bounded = pageable.getPageSize() > MAX_PAGE_SIZE
+            ? org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), MAX_PAGE_SIZE, pageable.getSort())
+            : pageable;
         String role = resolveTopRole();
         UUID orgUnitId = resolveOrgUnitId(jwt);
         List<String> specialtyCodes = jwt.getClaimAsStringList("specialty_codes");
         return demandService.list(role, orgUnitId, specialtyCodes != null ? specialtyCodes : List.of(),
-                status, specialtyId, departmentId, pageable)
+                status, specialtyId, departmentId, bounded)
             .map(DemandResponse::from);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "Get demand by ID")
-    public DemandResponse getById(@PathVariable UUID id) {
-        return DemandResponse.from(demandService.findById(id));
+    public DemandResponse getById(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        DemandEntity demand = demandService.findById(id);
+        verifyDemandAccess(demand, jwt);
+        return DemandResponse.from(demand);
     }
 
     @PatchMapping("/{id}/status")
@@ -104,6 +111,7 @@ public class DemandController {
     public DemandResponse changeStatus(@PathVariable UUID id,
                                         @RequestBody @Valid ChangeStatusRequest request,
                                         @AuthenticationPrincipal Jwt jwt) {
+        verifyDemandAccess(demandService.findById(id), jwt);
         DemandEntity demand = demandService.changeStatus(
             id, request.getStatus(), request.getJustification(), resolveActorName(jwt));
         if (request.getStatus() == br.gov.crateus.bcm.saged.domain.DemandStatus.DONE) {
@@ -120,6 +128,7 @@ public class DemandController {
     public DemandResponse assign(@PathVariable UUID id,
                                   @RequestBody @Valid AssignDemandRequest request,
                                   @AuthenticationPrincipal Jwt jwt) {
+        verifyDemandAccess(demandService.findById(id), jwt);
         String assigneeName = jwt.getClaimAsString("name");
         if (assigneeName == null) assigneeName = jwt.getClaimAsString("preferred_username");
         DemandEntity demand = demandService.assign(id, request.getAssigneeUserId(), assigneeName, resolveActorName(jwt));
@@ -133,6 +142,7 @@ public class DemandController {
     public DemandResponse updateNote(@PathVariable UUID id,
                                       @RequestBody @Valid UpdateNoteRequest request,
                                       @AuthenticationPrincipal Jwt jwt) {
+        verifyDemandAccess(demandService.findById(id), jwt);
         return DemandResponse.from(demandService.updateNote(id, request.getNote(), resolveActorName(jwt)));
     }
 
@@ -142,6 +152,7 @@ public class DemandController {
     public DemandResponse updateEquipment(@PathVariable UUID id,
                                            @RequestBody UpdateEquipmentRequest request,
                                            @AuthenticationPrincipal Jwt jwt) {
+        verifyDemandAccess(demandService.findById(id), jwt);
         return DemandResponse.from(demandService.updateEquipment(
             id, request.getIsRented(), request.getAssetTag(),
             request.getEquipmentName(), request.getEquipmentModel(), resolveActorName(jwt)));
@@ -195,6 +206,26 @@ public class DemandController {
             if (a.getAuthority().equals("ROLE_SAGED_TECNICO_LIDER")) return "SAGED_TECNICO_LIDER";
         }
         return "SAGED_TECNICO";
+    }
+
+    private void verifyDemandAccess(DemandEntity demand, Jwt jwt) {
+        String role = resolveTopRole();
+        switch (role) {
+            case "SAGED_ADMIN_GERAL" -> {} // sees all
+            case "SAGED_ADMIN_SETOR", "SAGED_TECNICO_LIDER" -> {
+                UUID orgUnitId = resolveOrgUnitId(jwt);
+                if (orgUnitId != null && !orgUnitId.equals(demand.getDepartmentId())) {
+                    throw new IllegalArgumentException("Demand not found: " + demand.getId());
+                }
+            }
+            case "SAGED_TECNICO" -> {
+                List<String> codes = jwt.getClaimAsStringList("specialty_codes");
+                if (codes == null || demand.getSpecialty() == null || !codes.contains(demand.getSpecialty().getCode())) {
+                    throw new IllegalArgumentException("Demand not found: " + demand.getId());
+                }
+            }
+            default -> throw new IllegalArgumentException("Demand not found: " + demand.getId());
+        }
     }
 
     private static String resolveActorName(Jwt jwt) {

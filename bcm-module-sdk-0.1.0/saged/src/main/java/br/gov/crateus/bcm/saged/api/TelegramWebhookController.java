@@ -6,6 +6,7 @@ import br.gov.crateus.bcm.saged.infrastructure.telegram.TelegramSender;
 import br.gov.crateus.bcm.saged.infrastructure.telegram.dto.TelegramUpdate;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.security.MessageDigest;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,8 +40,12 @@ public class TelegramWebhookController {
             @RequestBody TelegramUpdate update,
             @RequestHeader(value = "X-Telegram-Bot-Api-Secret-Token", required = false) String secret) {
         String expected = props.getWebhookSecret();
-        if (expected != null && !expected.equals(secret)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (expected != null && !expected.isBlank()) {
+            if (secret == null || !MessageDigest.isEqual(
+                    expected.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    secret.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
         }
         botService.handleUpdate(update);
         return ResponseEntity.ok().build();
