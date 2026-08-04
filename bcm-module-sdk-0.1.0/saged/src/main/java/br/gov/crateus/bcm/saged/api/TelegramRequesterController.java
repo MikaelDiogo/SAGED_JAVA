@@ -1,7 +1,9 @@
 package br.gov.crateus.bcm.saged.api;
 
 import br.gov.crateus.bcm.saged.api.dto.CreateTelegramRequesterRequest;
+import br.gov.crateus.bcm.saged.api.dto.PreRegisterTelegramRequest;
 import br.gov.crateus.bcm.saged.api.dto.TelegramRequesterResponse;
+import br.gov.crateus.bcm.saged.application.TelegramBotService;
 import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramRequesterEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramRequesterStatus;
 import br.gov.crateus.bcm.saged.infrastructure.repository.TelegramRequesterRepository;
@@ -32,9 +34,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class TelegramRequesterController {
 
     private final TelegramRequesterRepository repository;
+    private final TelegramBotService botService;
 
-    public TelegramRequesterController(TelegramRequesterRepository repository) {
+    public TelegramRequesterController(TelegramRequesterRepository repository,
+                                       TelegramBotService botService) {
         this.repository = repository;
+        this.botService = botService;
     }
 
     @GetMapping
@@ -99,7 +104,29 @@ public class TelegramRequesterController {
 
         e.setStatus(TelegramRequesterStatus.ACTIVE);
         e.setUpdatedBy(jwt.getSubject());
-        return TelegramRequesterResponse.from(repository.save(e));
+        TelegramRequesterResponse saved = TelegramRequesterResponse.from(repository.save(e));
+        botService.notifyApproved(e.getTelegramChatId());
+        return saved;
+    }
+
+    @PostMapping("/pre-register")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR')")
+    @Operation(summary = "Pre-register a phone number so the user can validate via Telegram")
+    public ResponseEntity<TelegramRequesterResponse> preRegister(
+            @RequestBody @Valid PreRegisterTelegramRequest request,
+            Authentication auth,
+            @AuthenticationPrincipal Jwt jwt) {
+        UUID deptId = isAdminGeral(auth) ? request.getDepartmentId() : extractOrgUnitId(jwt);
+        TelegramRequesterEntity e = new TelegramRequesterEntity();
+        e.setTelegramChatId(null);
+        e.setPhoneNumber(request.getPhoneNumber());
+        e.setDisplayName(request.getDisplayName());
+        e.setDepartmentId(deptId);
+        e.setStatus(TelegramRequesterStatus.ACTIVE);
+        e.setCreatedBy(jwt.getSubject());
+        e.setUpdatedBy(jwt.getSubject());
+        e = repository.save(e);
+        return ResponseEntity.status(HttpStatus.CREATED).body(TelegramRequesterResponse.from(e));
     }
 
     @PatchMapping("/{id}/reject")

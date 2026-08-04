@@ -12,7 +12,7 @@ import java.util.UUID;
 @Table(schema = "saged", name = "telegram_demand_requesters")
 public class TelegramRequesterEntity extends SdkAuditableEntity {
 
-    @Column(name = "telegram_chat_id", length = 128, nullable = false)
+    @Column(name = "telegram_chat_id", length = 128)
     private String telegramChatId;
 
     @Column(name = "phone_number", length = 64, nullable = false)

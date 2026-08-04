@@ -16,4 +16,8 @@ public interface TelegramRequesterRepository extends JpaRepository<TelegramReque
     boolean existsByTelegramChatId(String telegramChatId);
 
     List<TelegramRequesterEntity> findByDepartmentId(UUID departmentId);
+
+    Optional<TelegramRequesterEntity> findByPhoneNumber(String phoneNumber);
+
+    Optional<TelegramRequesterEntity> findByPhoneNumberAndStatus(String phoneNumber, TelegramRequesterStatus status);
 }

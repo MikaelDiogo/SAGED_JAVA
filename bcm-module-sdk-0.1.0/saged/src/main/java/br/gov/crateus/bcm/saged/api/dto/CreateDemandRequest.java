@@ -1,14 +1,17 @@
 package br.gov.crateus.bcm.saged.api.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
 public class CreateDemandRequest {
 
     @NotBlank
+    @Size(min = 12, message = "Título deve ter no mínimo 12 caracteres")
     private String title;
 
     @NotBlank
+    @Size(min = 20, message = "Descrição deve ter no mínimo 20 caracteres")
     private String description;
 
     @NotBlank

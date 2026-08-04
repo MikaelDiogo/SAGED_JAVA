@@ -5,14 +5,20 @@ import br.gov.crateus.bcm.saged.api.dto.ChangeStatusRequest;
 import br.gov.crateus.bcm.saged.api.dto.CreateDemandRequest;
 import br.gov.crateus.bcm.saged.api.dto.DemandHistoryResponse;
 import br.gov.crateus.bcm.saged.api.dto.DemandResponse;
+import br.gov.crateus.bcm.saged.api.dto.DemandViewResponse;
+import br.gov.crateus.bcm.saged.infrastructure.entity.DemandViewEntity;
+import br.gov.crateus.bcm.saged.infrastructure.repository.DemandViewRepository;
 import br.gov.crateus.bcm.saged.api.dto.UpdateEquipmentRequest;
 import br.gov.crateus.bcm.saged.api.dto.UpdateNoteRequest;
 import br.gov.crateus.bcm.saged.application.DemandService;
+import br.gov.crateus.bcm.saged.application.TelegramBotService;
 import br.gov.crateus.bcm.saged.domain.DemandStatus;
 import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -40,9 +46,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class DemandController {
 
     private final DemandService demandService;
+    private final TelegramBotService telegramBotService;
+    private final DemandViewRepository viewRepository;
 
-    public DemandController(DemandService demandService) {
+    public DemandController(DemandService demandService,
+                             TelegramBotService telegramBotService,
+                             DemandViewRepository viewRepository) {
         this.demandService = demandService;
+        this.telegramBotService = telegramBotService;
+        this.viewRepository = viewRepository;
     }
 
     @PostMapping
@@ -92,8 +104,14 @@ public class DemandController {
     public DemandResponse changeStatus(@PathVariable UUID id,
                                         @RequestBody @Valid ChangeStatusRequest request,
                                         @AuthenticationPrincipal Jwt jwt) {
-        return DemandResponse.from(demandService.changeStatus(
-            id, request.getStatus(), request.getJustification(), jwt.getSubject()));
+        DemandEntity demand = demandService.changeStatus(
+            id, request.getStatus(), request.getJustification(), resolveActorName(jwt));
+        if (request.getStatus() == br.gov.crateus.bcm.saged.domain.DemandStatus.DONE) {
+            telegramBotService.notifyDemandConcluded(demand, request.getJustification());
+        } else if (request.getStatus() == br.gov.crateus.bcm.saged.domain.DemandStatus.INTERRUPTED) {
+            telegramBotService.notifyDemandInterrupted(demand, request.getJustification());
+        }
+        return DemandResponse.from(demand);
     }
 
     @PatchMapping("/{id}/assignee")
@@ -102,7 +120,11 @@ public class DemandController {
     public DemandResponse assign(@PathVariable UUID id,
                                   @RequestBody @Valid AssignDemandRequest request,
                                   @AuthenticationPrincipal Jwt jwt) {
-        return DemandResponse.from(demandService.assign(id, request.getAssigneeUserId(), jwt.getSubject()));
+        String assigneeName = jwt.getClaimAsString("name");
+        if (assigneeName == null) assigneeName = jwt.getClaimAsString("preferred_username");
+        DemandEntity demand = demandService.assign(id, request.getAssigneeUserId(), assigneeName, resolveActorName(jwt));
+        telegramBotService.notifyDemandAssigned(demand, assigneeName != null ? assigneeName : "Tecnico");
+        return DemandResponse.from(demand);
     }
 
     @PatchMapping("/{id}/note")
@@ -111,7 +133,7 @@ public class DemandController {
     public DemandResponse updateNote(@PathVariable UUID id,
                                       @RequestBody @Valid UpdateNoteRequest request,
                                       @AuthenticationPrincipal Jwt jwt) {
-        return DemandResponse.from(demandService.updateNote(id, request.getNote(), jwt.getSubject()));
+        return DemandResponse.from(demandService.updateNote(id, request.getNote(), resolveActorName(jwt)));
     }
 
     @PatchMapping("/{id}/equipment")
@@ -122,7 +144,7 @@ public class DemandController {
                                            @AuthenticationPrincipal Jwt jwt) {
         return DemandResponse.from(demandService.updateEquipment(
             id, request.getIsRented(), request.getAssetTag(),
-            request.getEquipmentName(), request.getEquipmentModel(), jwt.getSubject()));
+            request.getEquipmentName(), request.getEquipmentModel(), resolveActorName(jwt)));
     }
 
     @GetMapping("/{id}/history")
@@ -130,6 +152,35 @@ public class DemandController {
     @Operation(summary = "Get demand history")
     public List<DemandHistoryResponse> getHistory(@PathVariable UUID id) {
         return demandService.getHistory(id).stream().map(DemandHistoryResponse::from).toList();
+    }
+
+    @PostMapping("/{id}/view")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @Operation(summary = "Mark demand as viewed by current user")
+    public org.springframework.http.ResponseEntity<Void> markViewed(@PathVariable UUID id,
+                                                                      @AuthenticationPrincipal Jwt jwt) {
+        UUID viewerId = UUID.fromString(jwt.getSubject());
+        if (!viewRepository.existsByDemandIdAndViewerUserId(id, viewerId)) {
+            DemandEntity demand = demandService.findById(id);
+            DemandViewEntity view = new DemandViewEntity();
+            view.setDemand(demand);
+            view.setViewerUserId(viewerId);
+            view.setViewerName(resolveActorName(jwt));
+            view.setViewedAt(OffsetDateTime.now(ZoneOffset.UTC));
+            view.setCreatedBy(jwt.getSubject());
+            view.setUpdatedBy(jwt.getSubject());
+            viewRepository.save(view);
+        }
+        return org.springframework.http.ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/viewers")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @Operation(summary = "List users who viewed this demand")
+    public List<DemandViewResponse> getViewers(@PathVariable UUID id) {
+        return viewRepository.findByDemandIdOrderByViewedAtAsc(id).stream()
+            .map(DemandViewResponse::from)
+            .toList();
     }
 
     private String resolveTopRole() {
@@ -144,6 +195,13 @@ public class DemandController {
             if (a.getAuthority().equals("ROLE_SAGED_TECNICO_LIDER")) return "SAGED_TECNICO_LIDER";
         }
         return "SAGED_TECNICO";
+    }
+
+    private static String resolveActorName(Jwt jwt) {
+        String name = jwt.getClaimAsString("name");
+        if (name != null && !name.isBlank()) return name;
+        String username = jwt.getClaimAsString("preferred_username");
+        return username != null ? username : jwt.getSubject();
     }
 
     private UUID resolveOrgUnitId(Jwt jwt) {

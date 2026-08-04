@@ -48,6 +48,9 @@ public class DemandEntity extends SdkAuditableEntity {
     @Column(name = "assignee_user_id")
     private UUID assigneeUserId;
 
+    @Column(name = "assignee_name", length = 255)
+    private String assigneeName;
+
     @Column(name = "equipment_name", length = 255)
     private String equipmentName;
 
@@ -86,6 +89,9 @@ public class DemandEntity extends SdkAuditableEntity {
 
     public UUID getAssigneeUserId() { return assigneeUserId; }
     public void setAssigneeUserId(UUID assigneeUserId) { this.assigneeUserId = assigneeUserId; }
+
+    public String getAssigneeName() { return assigneeName; }
+    public void setAssigneeName(String assigneeName) { this.assigneeName = assigneeName; }
 
     public String getEquipmentName() { return equipmentName; }
     public void setEquipmentName(String equipmentName) { this.equipmentName = equipmentName; }

@@ -24,15 +24,15 @@ public class TelegramSender {
         post(Map.of("chat_id", chatId, "text", text, "parse_mode", "MarkdownV2"));
     }
 
-    public void sendMainMenu(long chatId, String infoUrl) {
+    public void sendMainMenu(long chatId) {
         post(Map.of(
             "chat_id", chatId,
-            "text", "👋 *Bem\\-vindo ao SAGED*\n\nSistema de Suporte de TI da Prefeitura de Crateús\\. Siga os passos abaixo:",
+            "text", "*Bem\\-vindo ao SAGED*\n\nSistema de Suporte de TI da Prefeitura de Crateús\\.\nSelecione uma opcao abaixo:",
             "parse_mode", "MarkdownV2",
             "reply_markup", Map.of(
                 "inline_keyboard", List.of(
-                    List.of(Map.of("text", "ℹ️ Conhecer o SAGED", "web_app", Map.of("url", infoUrl))),
-                    List.of(Map.of("text", "📱 Validar meu número", "callback_data", "validar_numero"))
+                    List.of(Map.of("text", "Sobre o SAGED", "callback_data", "sobre_saged")),
+                    List.of(Map.of("text", "Validar meu numero", "callback_data", "validar_numero"))
                 )
             )
         ));
@@ -41,11 +41,11 @@ public class TelegramSender {
     public void sendContactRequest(long chatId) {
         post(Map.of(
             "chat_id", chatId,
-            "text", "📱 Toque no botão abaixo para compartilhar seu número\\. Ele será enviado automaticamente ao sistema para aprovação\\.",
+            "text", "Toque no botao abaixo para compartilhar seu numero\\. Ele sera enviado ao sistema para verificacao\\.",
             "parse_mode", "MarkdownV2",
             "reply_markup", Map.of(
                 "keyboard", List.of(
-                    List.of(Map.of("text", "📱 Compartilhar meu número", "request_contact", true))
+                    List.of(Map.of("text", "Compartilhar meu numero", "request_contact", true))
                 ),
                 "resize_keyboard", true,
                 "one_time_keyboard", true
@@ -56,36 +56,116 @@ public class TelegramSender {
     public void sendNotRegisteredMessage(long chatId) {
         post(Map.of(
             "chat_id", chatId,
-            "text", "❌ Você não possui um cadastro ativo no SAGED\\.\n\n" +
-                    "Seu número foi recebido, mas você ainda não foi cadastrado no sistema\\. " +
-                    "Solicite ao *administrador do seu setor* que aprove o seu acesso\\.",
+            "text", "Seu numero nao esta cadastrado no SAGED\\.\n\n" +
+                    "Solicite ao *administrador do seu setor* que cadastre o seu numero para liberar o acesso\\.",
             "parse_mode", "MarkdownV2",
             "reply_markup", Map.of("remove_keyboard", true)
         ));
     }
 
-    public void sendPendingApprovalMessage(long chatId) {
+    public void sendPendingMessage(long chatId) {
         post(Map.of(
             "chat_id", chatId,
-            "text", "⏳ Sua solicitação está *aguardando aprovação* de um administrador\\. Você será notificado quando aprovado\\.",
+            "text", "Seu numero esta cadastrado, porem o acesso ainda nao foi liberado\\. Aguarde o administrador ativar seu cadastro\\.",
             "parse_mode", "MarkdownV2",
             "reply_markup", Map.of("remove_keyboard", true)
         ));
     }
 
-    public void sendApprovedMenu(long chatId, String webAppUrl) {
+    public void sendApprovedMenu(long chatId) {
         post(Map.of(
             "chat_id", chatId,
-            "text", "✅ Acesso liberado\\! Use o botão no teclado para abrir um chamado:",
+            "text", "Acesso autorizado\\! Selecione uma opcao:",
             "parse_mode", "MarkdownV2",
             "reply_markup", Map.of(
-                "keyboard", List.of(
-                    List.of(Map.of("text", "🎫  Abrir Demanda", "web_app", Map.of("url", webAppUrl)))
-                ),
-                "resize_keyboard", true,
-                "persistent", true
+                "inline_keyboard", List.of(
+                    List.of(Map.of("text", "Abrir Chamado", "callback_data", "abrir_chamado")),
+                    List.of(Map.of("text", "Minhas Demandas", "callback_data", "minhas_demandas")),
+                    List.of(Map.of("text", "Consultar Status", "callback_data", "consultar_status"))
+                )
             )
         ));
+    }
+
+    public void sendSpecialtyMenu(long chatId, List<Map<String, String>> specialties) {
+        List<List<Map<String, Object>>> keyboard = specialties.stream()
+            .map(s -> List.of(Map.<String, Object>of(
+                "text", s.get("name"),
+                "callback_data", "specialty_" + s.get("code")
+            )))
+            .toList();
+        post(Map.of(
+            "chat_id", chatId,
+            "text", "Selecione o tipo de chamado:",
+            "parse_mode", "MarkdownV2",
+            "reply_markup", Map.of("inline_keyboard", keyboard)
+        ));
+    }
+
+    public void sendAskTitle(long chatId, String specialtyName) {
+        post(Map.of(
+            "chat_id", chatId,
+            "text", "Tipo selecionado: *" + escape(specialtyName) + "*\n\nDigite o *titulo* do chamado \\(minimo 12 caracteres\\):",
+            "parse_mode", "MarkdownV2"
+        ));
+    }
+
+    public void sendAskDescription(long chatId) {
+        post(Map.of(
+            "chat_id", chatId,
+            "text", "Digite a *descricao* do chamado \\(minimo 20 caracteres\\):\n_Ou envie_ `/pular` _para usar o titulo como descricao\\._",
+            "parse_mode", "MarkdownV2"
+        ));
+    }
+
+    public void sendSobreMessage(long chatId) {
+        post(Map.of(
+            "chat_id", chatId,
+            "text", "*SAGED \\- Sistema de Atendimento e Gestao de Demandas*\n\n" +
+                    "O SAGED e o sistema de suporte de TI da Prefeitura de Crateús\\. " +
+                    "Ele permite abrir chamados de suporte tecnico, acompanhar o status e receber atualizacoes diretamente pelo Telegram\\.\n\n" +
+                    "Para comecar, valide o seu numero de telefone cadastrado\\.",
+            "parse_mode", "MarkdownV2",
+            "reply_markup", Map.of(
+                "inline_keyboard", List.of(
+                    List.of(Map.of("text", "Validar meu numero", "callback_data", "validar_numero"))
+                )
+            )
+        ));
+    }
+
+    public void sendAskProtocol(long chatId) {
+        post(Map.of(
+            "chat_id", chatId,
+            "text", "Digite o *protocolo* do chamado que deseja consultar:\n_Exemplo: 2026\\-MANUT\\-00001_",
+            "parse_mode", "MarkdownV2"
+        ));
+    }
+
+    public void sendDemandAssignedNotification(long chatId, String protocol, String technicianName) {
+        post(Map.of(
+            "chat_id", chatId,
+            "text", "Seu chamado *" + escape(protocol) + "* foi assumido pelo tecnico *" + escape(technicianName) +
+                    "* e esta atualmente *Em Andamento*\\.\n\nPosteriormente voce recebera mais informacoes\\.",
+            "parse_mode", "MarkdownV2"
+        ));
+    }
+
+    public void sendDemandConcludedNotification(long chatId, String protocol, String technicianName, String justification) {
+        String msg = "Seu chamado *" + escape(protocol) + "* foi *Concluido* pelo tecnico *" + escape(technicianName) + "*\\.";
+        if (justification != null && !justification.isBlank()) {
+            msg += "\n\n*Relatorio tecnico:*\n" + escape(justification);
+        }
+        post(Map.of("chat_id", chatId, "text", msg, "parse_mode", "MarkdownV2"));
+    }
+
+    public void sendDemandInterruptedNotification(long chatId, String protocol, String technicianName, String justification) {
+        String msg = "Seu chamado *" + escape(protocol) + "* foi *Interrompido* pelo tecnico *" + escape(technicianName) + "*\\.";
+        if (justification != null && !justification.isBlank()) {
+            msg += "\n\n*Justificativa:*\n" + escape(justification);
+        }
+        msg += "\n\nPara mais informacoes entre em contato com a TI\\.";
+        post(Map.of("chat_id", chatId, "text", msg, "parse_mode", "MarkdownV2"));
     }
 
     public void answerCallbackQuery(String callbackQueryId) {
@@ -118,5 +198,10 @@ public class TelegramSender {
             .body(body)
             .retrieve()
             .toBodilessEntity();
+    }
+
+    public static String escape(String text) {
+        if (text == null) return "";
+        return text.replaceAll("([_*\\[\\]()~`>#+\\-=|{}.!])", "\\\\$1");
     }
 }

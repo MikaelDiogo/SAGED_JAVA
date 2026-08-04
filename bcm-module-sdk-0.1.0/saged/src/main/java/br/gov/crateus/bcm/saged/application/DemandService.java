@@ -88,9 +88,10 @@ public class DemandService {
         return demand;
     }
 
-    public DemandEntity assign(UUID demandId, UUID assigneeUserId, String actor) {
+    public DemandEntity assign(UUID demandId, UUID assigneeUserId, String assigneeName, String actor) {
         DemandEntity demand = findById(demandId);
         demand.setAssigneeUserId(assigneeUserId);
+        demand.setAssigneeName(assigneeName);
         demand.setUpdatedBy(actor);
         demand = demandRepository.save(demand);
         recordHistory(demand, "ASSIGNED", null, actor);

@@ -1,0 +1,1 @@
+ALTER TABLE saged.demands ADD COLUMN IF NOT EXISTS assignee_name VARCHAR(255);
