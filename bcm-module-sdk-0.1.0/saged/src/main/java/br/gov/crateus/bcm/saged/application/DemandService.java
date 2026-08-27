@@ -47,7 +47,7 @@ public class DemandService {
                                 String assetTag, UUID requesterUserId, UUID departmentId,
                                 String actor) {
         SpecialtyEntity specialty = specialtyRepository.findWithLockByCode(specialtyCode)
-            .orElseThrow(() -> new IllegalArgumentException("Specialty not found: " + specialtyCode));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Specialty not found: " + specialtyCode));
 
         int year = LocalDate.now().getYear();
         long count = demandRepository.countByDepartmentIdAndSpecialtyIdAndYear(departmentId, specialty.getId(), year);
@@ -78,11 +78,12 @@ public class DemandService {
 
         Set<DemandStatus> allowed = VALID_TRANSITIONS.getOrDefault(demand.getStatus(), Set.of());
         if (!allowed.contains(newStatus)) {
-            throw new IllegalStateException(
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                 "Transition " + demand.getStatus() + " -> " + newStatus + " is not allowed");
         }
         if (newStatus == DemandStatus.INTERRUPTED && (justification == null || justification.isBlank())) {
-            throw new IllegalArgumentException("Justification is required when interrupting a demand");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Justification is required when interrupting a demand");
         }
 
         demand.setStatus(newStatus);
