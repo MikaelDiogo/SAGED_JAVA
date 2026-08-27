@@ -17,6 +17,7 @@ import br.gov.crateus.bcm.saged.infrastructure.repository.SpecialtyRepository;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.web.server.ResponseStatusException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,16 +43,17 @@ class DemandServiceTest {
     void create_generatesCorrectProtocol() {
         SpecialtyEntity specialty = specialty("HW");
         int year = LocalDate.now().getYear();
+        UUID deptId = UUID.fromString("00000000-0000-0000-0000-000000000001"); // DEP = 0001
 
         when(specialtyRepository.findWithLockByCode("HW")).thenReturn(Optional.of(specialty));
-        when(demandRepository.countBySpecialtyIdAndYear(specialty.getId(), year)).thenReturn(3L);
+        when(demandRepository.countByDepartmentIdAndSpecialtyIdAndYear(deptId, specialty.getId(), year)).thenReturn(3L);
         when(demandRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(historyRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         DemandEntity result = service.create("Title", "Desc", "HW", null,
-                UUID.randomUUID(), UUID.randomUUID(), "actor");
+                UUID.randomUUID(), deptId, "actor");
 
-        assertThat(result.getProtocol()).isEqualTo(year + "-HW-00004");
+        assertThat(result.getProtocol()).isEqualTo(year + "-0001-HW-00004");
         assertThat(result.getStatus()).isEqualTo(DemandStatus.TODO);
     }
 
@@ -59,7 +61,7 @@ class DemandServiceTest {
     void create_recordsCreatedHistory() {
         SpecialtyEntity specialty = specialty("NET");
         when(specialtyRepository.findWithLockByCode("NET")).thenReturn(Optional.of(specialty));
-        when(demandRepository.countBySpecialtyIdAndYear(any(), any(int.class))).thenReturn(0L);
+        when(demandRepository.countByDepartmentIdAndSpecialtyIdAndYear(any(), any(), any(int.class))).thenReturn(0L);
         when(demandRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(historyRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -76,7 +78,7 @@ class DemandServiceTest {
 
         assertThatThrownBy(() -> service.create("T", "D", "UNKNOWN", null,
                 UUID.randomUUID(), UUID.randomUUID(), "actor"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Specialty not found");
     }
 
@@ -97,12 +99,12 @@ class DemandServiceTest {
     }
 
     @Test
-    void changeStatus_invalidTransition_throwsIllegalStateException() {
+    void changeStatus_invalidTransition_throwsResponseStatusException() {
         DemandEntity demand = demand(DemandStatus.TODO);
         when(demandRepository.findById(demand.getId())).thenReturn(Optional.of(demand));
 
         assertThatThrownBy(() -> service.changeStatus(demand.getId(), DemandStatus.DONE, null, "actor"))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("not allowed");
     }
 
@@ -112,16 +114,16 @@ class DemandServiceTest {
         when(demandRepository.findById(demand.getId())).thenReturn(Optional.of(demand));
 
         assertThatThrownBy(() -> service.changeStatus(demand.getId(), DemandStatus.IN_PROGRESS, null, "actor"))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(ResponseStatusException.class);
     }
 
     @Test
-    void changeStatus_interruptedWithoutJustification_throwsIllegalArgumentException() {
+    void changeStatus_interruptedWithoutJustification_throwsResponseStatusException() {
         DemandEntity demand = demand(DemandStatus.IN_PROGRESS);
         when(demandRepository.findById(demand.getId())).thenReturn(Optional.of(demand));
 
         assertThatThrownBy(() -> service.changeStatus(demand.getId(), DemandStatus.INTERRUPTED, "", "actor"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Justification is required");
     }
 
@@ -176,7 +178,7 @@ class DemandServiceTest {
         when(demandRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.findById(id))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Demand not found");
     }
 
