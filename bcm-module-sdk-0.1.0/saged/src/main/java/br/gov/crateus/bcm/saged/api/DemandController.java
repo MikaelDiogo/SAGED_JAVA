@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -90,8 +91,8 @@ public class DemandController {
             : pageable;
         String role = resolveTopRole();
         UUID orgUnitId = resolveOrgUnitId(jwt);
-        List<String> specialtyCodes = jwt.getClaimAsStringList("specialty_codes");
-        return demandService.list(role, orgUnitId, specialtyCodes != null ? specialtyCodes : List.of(),
+        List<String> specialtyCodes = resolveSpecialtyCodes(jwt);
+        return demandService.list(role, orgUnitId, specialtyCodes,
                 status, specialtyId, departmentId, bounded)
             .map(DemandResponse::from);
     }
@@ -219,8 +220,8 @@ public class DemandController {
                 }
             }
             case "SAGED_TECNICO" -> {
-                List<String> codes = jwt.getClaimAsStringList("specialty_codes");
-                if (codes == null || demand.getSpecialty() == null || !codes.contains(demand.getSpecialty().getCode())) {
+                List<String> codes = resolveSpecialtyCodes(jwt);
+                if (codes.isEmpty() || demand.getSpecialty() == null || !codes.contains(demand.getSpecialty().getCode())) {
                     throw new IllegalArgumentException("Demand not found: " + demand.getId());
                 }
             }
@@ -238,5 +239,16 @@ public class DemandController {
     private UUID resolveOrgUnitId(Jwt jwt) {
         String raw = jwt.getClaimAsString("org_unit_id");
         return raw != null ? UUID.fromString(raw) : null;
+    }
+
+    private List<String> resolveSpecialtyCodes(Jwt jwt) {
+        Object raw = jwt.getClaim("specialty_codes");
+        if (raw == null) return List.of();
+        if (raw instanceof List<?> list) {
+            return list.stream().map(Object::toString).map(String::trim).filter(s -> !s.isEmpty()).toList();
+        }
+        String str = raw.toString().trim();
+        if (str.isBlank()) return List.of();
+        return Arrays.stream(str.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
     }
 }
