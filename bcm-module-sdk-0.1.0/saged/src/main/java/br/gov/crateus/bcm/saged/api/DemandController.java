@@ -64,12 +64,21 @@ public class DemandController {
     @Operation(summary = "Create a demand")
     public ResponseEntity<DemandResponse> create(@RequestBody @Valid CreateDemandRequest request,
                                                   @AuthenticationPrincipal Jwt jwt) {
-        UUID requesterUserId = request.getRequesterUserId() != null
+        String role = resolveTopRole();
+        boolean isAdminGeral = "SAGED_ADMIN_GERAL".equals(role);
+
+        UUID requesterUserId = isAdminGeral && request.getRequesterUserId() != null
             ? request.getRequesterUserId()
             : UUID.fromString(jwt.getSubject());
-        UUID departmentId = request.getDepartmentId() != null
+
+        UUID departmentId = isAdminGeral && request.getDepartmentId() != null
             ? request.getDepartmentId()
             : resolveOrgUnitId(jwt);
+
+        if (departmentId == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "org_unit_id claim is required for this role");
+        }
+
         DemandEntity demand = demandService.create(
             request.getTitle(), request.getDescription(), request.getSpecialtyCode(),
             request.getAssetTag(), requesterUserId, departmentId, jwt.getSubject());
