@@ -110,6 +110,24 @@ public class DemandController {
             .map(DemandResponse::from);
     }
 
+    @GetMapping("/reports")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER')")
+    @Operation(summary = "Report export — all matching demands for management roles; SAGED_TECNICO returns 403")
+    public Page<DemandResponse> reports(
+            @RequestParam(required = false) DemandStatus status,
+            @RequestParam(required = false) UUID specialtyId,
+            @RequestParam(required = false) UUID departmentId,
+            @PageableDefault(size = 500, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal Jwt jwt) {
+        String role = resolveTopRole();
+        UUID orgUnitId = resolveOrgUnitId(jwt);
+        if (("SAGED_ADMIN_SETOR".equals(role) || "SAGED_TECNICO_LIDER".equals(role)) && orgUnitId == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "org_unit_id claim is required for this role");
+        }
+        return demandService.list(role, orgUnitId, List.of(), status, specialtyId, departmentId, pageable)
+            .map(DemandResponse::from);
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "Get demand by ID")
