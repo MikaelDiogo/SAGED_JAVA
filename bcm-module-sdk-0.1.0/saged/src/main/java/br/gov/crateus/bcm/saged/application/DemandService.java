@@ -111,9 +111,11 @@ public class DemandService {
                                     DemandStatus statusFilter, UUID specialtyIdFilter,
                                     UUID departmentIdFilter, Pageable pageable) {
         Specification<DemandEntity> visibility = switch (role) {
-            case "SAGED_ADMIN_SETOR" -> DemandSpecifications.withDepartmentId(orgUnitId);
-            case "SAGED_TECNICO"     -> DemandSpecifications.withSpecialtyCodeIn(specialtyCodes);
-            default                  -> Specification.where(null);
+            case "SAGED_ADMIN_SETOR", "SAGED_TECNICO_LIDER" -> DemandSpecifications.withDepartmentId(orgUnitId);
+            case "SAGED_TECNICO" -> specialtyCodes.isEmpty()
+                ? (root, query, cb) -> cb.disjunction()
+                : DemandSpecifications.withSpecialtyCodeIn(specialtyCodes);
+            default -> Specification.where(null);
         };
 
         Specification<DemandEntity> filters = Specification
