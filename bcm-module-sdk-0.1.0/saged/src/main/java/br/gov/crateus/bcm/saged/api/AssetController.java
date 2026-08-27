@@ -50,7 +50,15 @@ public class AssetController {
     @Operation(summary = "Get asset by ID")
     public AssetResponse getById(@PathVariable UUID id) {
         return AssetResponse.from(assetRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Asset not found: " + id)));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asset not found: " + id)));
+    }
+
+    @GetMapping("/by-tag/{tag}")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @Operation(summary = "Get asset by asset tag (patrimony number)")
+    public AssetResponse getByTag(@PathVariable String tag) {
+        return AssetResponse.from(assetRepository.findByAssetTag(tag)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asset not found for tag: " + tag)));
     }
 
     @PostMapping
@@ -76,7 +84,7 @@ public class AssetController {
     @Operation(summary = "Deactivate an asset (soft delete)")
     public AssetResponse deactivate(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         AssetEntity e = assetRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Asset not found: " + id));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asset not found: " + id));
         e.setLifecycleStatus("INACTIVE");
         e.setUpdatedBy(jwt.getSubject());
         return AssetResponse.from(assetRepository.save(e));
