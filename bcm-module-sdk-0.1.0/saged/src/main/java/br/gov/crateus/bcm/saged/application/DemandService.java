@@ -50,8 +50,10 @@ public class DemandService {
             .orElseThrow(() -> new IllegalArgumentException("Specialty not found: " + specialtyCode));
 
         int year = LocalDate.now().getYear();
-        long count = demandRepository.countBySpecialtyIdAndYear(specialty.getId(), year);
-        String protocol = String.format("%d-%s-%05d", year, specialty.getCode(), count + 1);
+        long count = demandRepository.countByDepartmentIdAndSpecialtyIdAndYear(departmentId, specialty.getId(), year);
+        String depShort = String.format("%04d",
+            Long.parseLong(departmentId.toString().replace("-", "").substring(24), 16) % 10000);
+        String protocol = String.format("%d-%s-%s-%05d", year, depShort, specialty.getCode(), count + 1);
 
         DemandEntity demand = new DemandEntity();
         demand.setProtocol(protocol);

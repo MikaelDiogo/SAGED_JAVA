@@ -22,6 +22,9 @@ public interface DemandRepository extends JpaRepository<DemandEntity, UUID>, Jpa
     @Query(value = "SELECT COUNT(*) FROM saged.demands WHERE specialty_id = :specialtyId AND EXTRACT(YEAR FROM created_at) = :year", nativeQuery = true)
     long countBySpecialtyIdAndYear(@Param("specialtyId") UUID specialtyId, @Param("year") int year);
 
+    @Query(value = "SELECT COUNT(*) FROM saged.demands WHERE department_id = :deptId AND specialty_id = :specialtyId AND EXTRACT(YEAR FROM created_at) = :year", nativeQuery = true)
+    long countByDepartmentIdAndSpecialtyIdAndYear(@Param("deptId") UUID deptId, @Param("specialtyId") UUID specialtyId, @Param("year") int year);
+
     @Query("SELECT d FROM DemandEntity d WHERE d.specialty.code IN :specialtyCodes")
     List<DemandEntity> findBySpecialtyCodeIn(@Param("specialtyCodes") List<String> specialtyCodes);
 }
