@@ -28,6 +28,9 @@ public class SystemNotificationEntity extends SdkAuditableEntity {
     @Column(name = "demand_protocol", length = 64)
     private String demandProtocol;
 
+    @Column(name = "department_id")
+    private UUID departmentId;
+
     public UUID getRecipientUserId() { return recipientUserId; }
     public void setRecipientUserId(UUID recipientUserId) { this.recipientUserId = recipientUserId; }
 
@@ -45,4 +48,7 @@ public class SystemNotificationEntity extends SdkAuditableEntity {
 
     public String getDemandProtocol() { return demandProtocol; }
     public void setDemandProtocol(String demandProtocol) { this.demandProtocol = demandProtocol; }
+
+    public UUID getDepartmentId() { return departmentId; }
+    public void setDepartmentId(UUID departmentId) { this.departmentId = departmentId; }
 }

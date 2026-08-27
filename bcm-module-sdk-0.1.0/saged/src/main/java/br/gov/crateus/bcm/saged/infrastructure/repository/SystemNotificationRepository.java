@@ -9,11 +9,21 @@ import org.springframework.data.repository.query.Param;
 
 public interface SystemNotificationRepository extends JpaRepository<SystemNotificationEntity, UUID> {
 
-    @Query("SELECT n FROM SystemNotificationEntity n WHERE n.recipientUserId = :userId OR n.recipientUserId IS NULL ORDER BY n.createdAt DESC")
-    List<SystemNotificationEntity> findForUser(@Param("userId") UUID userId);
+    @Query("""
+            SELECT n FROM SystemNotificationEntity n
+            WHERE n.recipientUserId = :userId
+               OR (n.recipientUserId IS NULL AND (:deptId IS NULL OR n.departmentId IS NULL OR n.departmentId = :deptId))
+            ORDER BY n.createdAt DESC
+            """)
+    List<SystemNotificationEntity> findForUser(@Param("userId") UUID userId, @Param("deptId") UUID deptId);
 
-    @Query("SELECT COUNT(n) FROM SystemNotificationEntity n WHERE (n.recipientUserId = :userId OR n.recipientUserId IS NULL) AND n.read = false")
-    long countUnreadForUser(@Param("userId") UUID userId);
+    @Query("""
+            SELECT COUNT(n) FROM SystemNotificationEntity n
+            WHERE (n.recipientUserId = :userId
+               OR (n.recipientUserId IS NULL AND (:deptId IS NULL OR n.departmentId IS NULL OR n.departmentId = :deptId)))
+              AND n.read = false
+            """)
+    long countUnreadForUser(@Param("userId") UUID userId, @Param("deptId") UUID deptId);
 
     boolean existsByDemandIdAndType(UUID demandId, String type);
 }

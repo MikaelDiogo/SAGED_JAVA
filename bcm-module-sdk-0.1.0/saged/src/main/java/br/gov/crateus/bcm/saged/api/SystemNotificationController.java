@@ -33,7 +33,8 @@ public class SystemNotificationController {
     @Operation(summary = "List notifications for the current user")
     public List<SystemNotificationResponse> list(@AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
-        return repository.findForUser(userId).stream()
+        UUID deptId = resolveDeptId(jwt);
+        return repository.findForUser(userId, deptId).stream()
             .map(SystemNotificationResponse::from)
             .toList();
     }
@@ -43,7 +44,8 @@ public class SystemNotificationController {
     @Operation(summary = "Count unread notifications for the current user")
     public long countUnread(@AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
-        return repository.countUnreadForUser(userId);
+        UUID deptId = resolveDeptId(jwt);
+        return repository.countUnreadForUser(userId, deptId);
     }
 
     @PatchMapping("/{id}/read")
@@ -62,11 +64,17 @@ public class SystemNotificationController {
     @Operation(summary = "Mark all notifications as read for the current user")
     public ResponseEntity<Void> markAllRead(@AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
-        List<SystemNotificationEntity> unread = repository.findForUser(userId).stream()
+        UUID deptId = resolveDeptId(jwt);
+        List<SystemNotificationEntity> unread = repository.findForUser(userId, deptId).stream()
             .filter(n -> !n.isRead())
             .toList();
         unread.forEach(n -> n.setRead(true));
         repository.saveAll(unread);
         return ResponseEntity.noContent().build();
+    }
+
+    private static UUID resolveDeptId(Jwt jwt) {
+        String raw = jwt.getClaimAsString("org_unit_id");
+        return raw != null ? UUID.fromString(raw) : null;
     }
 }

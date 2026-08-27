@@ -42,7 +42,8 @@ public class DemandAlertScheduler {
             notification.setRead(false);
             notification.setDemandId(demand.getId());
             notification.setDemandProtocol(demand.getProtocol());
-            notification.setRecipientUserId(null); // global: visible to all
+            notification.setRecipientUserId(null);
+            notification.setDepartmentId(demand.getDepartmentId());
             notification.setCreatedBy("scheduler");
             notification.setUpdatedBy("scheduler");
             notificationRepository.save(notification);
