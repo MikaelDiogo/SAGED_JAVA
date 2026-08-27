@@ -175,7 +175,8 @@ public class DemandController {
     @GetMapping("/{id}/history")
     @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "Get demand history")
-    public List<DemandHistoryResponse> getHistory(@PathVariable UUID id) {
+    public List<DemandHistoryResponse> getHistory(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        verifyDemandAccess(demandService.findById(id), jwt);
         return demandService.getHistory(id).stream().map(DemandHistoryResponse::from).toList();
     }
 
@@ -202,7 +203,8 @@ public class DemandController {
     @GetMapping("/{id}/viewers")
     @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "List users who viewed this demand")
-    public List<DemandViewResponse> getViewers(@PathVariable UUID id) {
+    public List<DemandViewResponse> getViewers(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        verifyDemandAccess(demandService.findById(id), jwt);
         return viewRepository.findByDemandIdOrderByViewedAtAsc(id).stream()
             .map(DemandViewResponse::from)
             .toList();
