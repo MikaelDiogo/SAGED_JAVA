@@ -2,6 +2,7 @@ package br.gov.crateus.bcm.saged.infrastructure.repository;
 
 import br.gov.crateus.bcm.saged.domain.DemandStatus;
 import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,4 +28,17 @@ public interface DemandRepository extends JpaRepository<DemandEntity, UUID>, Jpa
 
     @Query("SELECT d FROM DemandEntity d WHERE d.specialty.code IN :specialtyCodes")
     List<DemandEntity> findBySpecialtyCodeIn(@Param("specialtyCodes") List<String> specialtyCodes);
+
+    @Query(value = """
+            SELECT d.* FROM saged.demands d
+            WHERE d.assignee_user_id IS NULL
+              AND d.status IN ('TODO','IN_PROGRESS')
+              AND d.created_at < :threshold
+              AND NOT EXISTS (
+                  SELECT 1 FROM saged.system_notifications n
+                  WHERE n.demand_id = d.id AND n.type = :type
+              )
+            """, nativeQuery = true)
+    List<DemandEntity> findUnattendedWithoutAlert(@Param("threshold") OffsetDateTime threshold,
+                                                   @Param("type") String type);
 }

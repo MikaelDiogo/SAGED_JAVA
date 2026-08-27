@@ -1,6 +1,5 @@
 package br.gov.crateus.bcm.saged.application;
 
-import br.gov.crateus.bcm.saged.domain.DemandStatus;
 import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.SystemNotificationEntity;
 import br.gov.crateus.bcm.saged.infrastructure.repository.DemandRepository;
@@ -33,12 +32,7 @@ public class DemandAlertScheduler {
     @Transactional
     public void alertUnattendedDemands() {
         OffsetDateTime threshold = OffsetDateTime.now(ZoneOffset.UTC).minusDays(7);
-        List<DemandEntity> unattended = demandRepository.findAll().stream()
-            .filter(d -> d.getAssigneeUserId() == null
-                && (d.getStatus() == DemandStatus.TODO || d.getStatus() == DemandStatus.IN_PROGRESS)
-                && d.getCreatedAt() != null && d.getCreatedAt().isBefore(threshold)
-                && !notificationRepository.existsByDemandIdAndType(d.getId(), TYPE_UNATTENDED))
-            .toList();
+        List<DemandEntity> unattended = demandRepository.findUnattendedWithoutAlert(threshold, TYPE_UNATTENDED);
 
         for (DemandEntity demand : unattended) {
             SystemNotificationEntity notification = new SystemNotificationEntity();
