@@ -52,6 +52,15 @@ public class TelegramBotService {
     }
 
     public void handleUpdate(TelegramUpdate update) {
+        if (update.getUpdateId() != null) {
+            String key = String.valueOf(update.getUpdateId());
+            if (processedRepository.existsByProviderAndExternalMessageId("TELEGRAM", key)) return;
+            BotProcessedMessageEntity processed = new BotProcessedMessageEntity();
+            processed.setProvider("TELEGRAM");
+            processed.setExternalMessageId(key);
+            processed.setProcessedAt(OffsetDateTime.now(ZoneOffset.UTC));
+            processedRepository.save(processed);
+        }
         if (update.getCallbackQuery() != null) {
             handleCallbackQuery(update.getCallbackQuery());
             return;
@@ -107,16 +116,6 @@ public class TelegramBotService {
 
     private void handleMessage(TelegramUpdate.Message message) {
         if (message.getFrom() == null) return;
-
-        String externalId = message.getChat().getId() + ":" + message.getMessageId();
-        if (processedRepository.existsByProviderAndExternalMessageId("TELEGRAM", externalId)) return;
-
-        BotProcessedMessageEntity processed = new BotProcessedMessageEntity();
-        processed.setProvider("TELEGRAM");
-        processed.setExternalMessageId(externalId);
-        processed.setProcessedAt(OffsetDateTime.now(ZoneOffset.UTC));
-        processedRepository.save(processed);
-
         upsertContact(message.getFrom(), message.getChat());
 
         long chatId = message.getChat().getId();

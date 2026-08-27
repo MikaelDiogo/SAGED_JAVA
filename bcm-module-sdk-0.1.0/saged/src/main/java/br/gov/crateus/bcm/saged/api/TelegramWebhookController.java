@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/saged/telegram")
+@RequestMapping("/api/v1/saged")
 @Tag(name = "saged-telegram")
 public class TelegramWebhookController {
 
@@ -34,24 +34,25 @@ public class TelegramWebhookController {
         this.props = props;
     }
 
-    @PostMapping("/webhook")
+    @PostMapping("/webhooks/telegram")
     @Operation(summary = "Telegram webhook — recebe updates do bot")
     public ResponseEntity<Void> webhook(
             @RequestBody TelegramUpdate update,
             @RequestHeader(value = "X-Telegram-Bot-Api-Secret-Token", required = false) String secret) {
         String expected = props.getWebhookSecret();
-        if (expected != null && !expected.isBlank()) {
-            if (secret == null || !MessageDigest.isEqual(
-                    expected.getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                    secret.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
+        if (expected == null || expected.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (secret == null || !MessageDigest.isEqual(
+                expected.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                secret.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         botService.handleUpdate(update);
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/webhook/register")
+    @PostMapping("/webhooks/telegram/register")
     @PreAuthorize("hasRole('SAGED_ADMIN_GERAL')")
     @Operation(summary = "Manually register Telegram webhook URL (ADMIN_GERAL only)")
     public ResponseEntity<Map<String, String>> registerWebhook() {
@@ -59,6 +60,10 @@ public class TelegramWebhookController {
         if (props.getBotToken() == null || url == null || url.isBlank()) {
             return ResponseEntity.badRequest()
                 .body(Map.of("error", "saged.telegram.bot-token or webhook-url not configured"));
+        }
+        if (props.getWebhookSecret() == null || props.getWebhookSecret().isBlank()) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "saged.telegram.webhook-secret is required"));
         }
         sender.registerWebhook(url, props.getWebhookSecret());
         return ResponseEntity.ok(Map.of("message", "Webhook registered", "url", url));
