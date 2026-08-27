@@ -44,13 +44,13 @@ class DemandIntegrationTest extends SagedIntegrationTestBase {
                                 "departmentId", TEST_DEPT_ID
                         ))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.protocol").value(org.hamcrest.Matchers.matchesPattern("\\d{4}-HW-\\d{5}")))
+                .andExpect(jsonPath("$.protocol").value(org.hamcrest.Matchers.matchesPattern("\\d{4}-\\d{4}-HW-\\d{5}")))
                 .andExpect(jsonPath("$.status").value("TODO"))
                 .andExpect(jsonPath("$.specialtyCode").value("HW"));
     }
 
     @Test
-    void createDemand_unknownSpecialty_returns400() throws Exception {
+    void createDemand_unknownSpecialty_returns404() throws Exception {
         mockMvc.perform(post("/api/v1/saged/demands")
                         .with(adminJwt())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -136,9 +136,9 @@ class DemandIntegrationTest extends SagedIntegrationTestBase {
     }
 
     @Test
-    void getDemandById_notFound_returns400() throws Exception {
+    void getDemandById_notFound_returns404() throws Exception {
         mockMvc.perform(get("/api/v1/saged/demands/{id}", UUID.randomUUID()).with(adminJwt()))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
     }
 
     // --- status ---
@@ -213,14 +213,14 @@ class DemandIntegrationTest extends SagedIntegrationTestBase {
     }
 
     @Test
-    void changeStatus_nonexistentDemand_returns400() throws Exception {
+    void changeStatus_nonexistentDemand_returns404() throws Exception {
         mockMvc.perform(patch("/api/v1/saged/demands/{id}/status", UUID.randomUUID())
                         .with(adminJwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"status":"IN_PROGRESS"}
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
     }
 
     // --- assign ---
@@ -250,12 +250,12 @@ class DemandIntegrationTest extends SagedIntegrationTestBase {
     }
 
     @Test
-    void assignDemand_nonexistentDemand_returns400() throws Exception {
+    void assignDemand_nonexistentDemand_returns404() throws Exception {
         mockMvc.perform(patch("/api/v1/saged/demands/{id}/assignee", UUID.randomUUID())
                         .with(adminJwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("assigneeUserId", UUID.randomUUID()))))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
     }
 
     // --- note ---
@@ -275,14 +275,14 @@ class DemandIntegrationTest extends SagedIntegrationTestBase {
     }
 
     @Test
-    void updateNote_nonexistentDemand_returns400() throws Exception {
+    void updateNote_nonexistentDemand_returns404() throws Exception {
         mockMvc.perform(patch("/api/v1/saged/demands/{id}/note", UUID.randomUUID())
                         .with(adminJwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"note":"alguma coisa"}
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
     }
 
     @Test
