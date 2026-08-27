@@ -299,7 +299,7 @@ public class TelegramBotService {
                 "Protocolo: `" + TelegramSender.escape(d.getProtocol()) + "`\n" +
                 "Titulo: " + TelegramSender.escape(d.getTitle()) + "\n" +
                 "Status: *" + translateStatus(d.getStatus()) + "*\n" +
-                (d.getAssigneeName() != null ? "Tecnico: " + TelegramSender.escape(d.getAssigneeName()) : "Tecnico: _nao atribuido_")),
+                (d.getAssigneeUserId() != null ? "Tecnico: atribuido" : "Tecnico: _nao atribuido_")),
             () -> sender.sendMessage(chatId, "Protocolo nao encontrado: `" + TelegramSender.escape(protocol) + "`")
         );
     }
@@ -311,16 +311,16 @@ public class TelegramBotService {
             sender.sendDemandAssignedNotification(chatId, demand.getProtocol(), technicianName));
     }
 
-    public void notifyDemandConcluded(DemandEntity demand, String justification) {
+    public void notifyDemandConcluded(DemandEntity demand, String technicianName, String justification) {
         findRequesterChatId(demand).ifPresent(chatId ->
             sender.sendDemandConcludedNotification(chatId, demand.getProtocol(),
-                demand.getAssigneeName() != null ? demand.getAssigneeName() : "Tecnico", justification));
+                technicianName != null ? technicianName : "Tecnico", justification));
     }
 
-    public void notifyDemandInterrupted(DemandEntity demand, String justification) {
+    public void notifyDemandInterrupted(DemandEntity demand, String technicianName, String justification) {
         findRequesterChatId(demand).ifPresent(chatId ->
             sender.sendDemandInterruptedNotification(chatId, demand.getProtocol(),
-                demand.getAssigneeName() != null ? demand.getAssigneeName() : "Tecnico", justification));
+                technicianName != null ? technicianName : "Tecnico", justification));
     }
 
     public void notifyApproved(String telegramChatId) {

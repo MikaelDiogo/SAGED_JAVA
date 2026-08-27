@@ -20,7 +20,6 @@ public class DemandResponse {
     private String assetTag;
     private String currentTechnicalNote;
     private UUID assigneeUserId;
-    private String assigneeName;
     private String equipmentName;
     private String equipmentModel;
     private Boolean isRented;
@@ -46,7 +45,6 @@ public class DemandResponse {
         r.assetTag = d.getAssetTag();
         r.currentTechnicalNote = d.getCurrentTechnicalNote();
         r.assigneeUserId = d.getAssigneeUserId();
-        r.assigneeName = d.getAssigneeName();
         r.equipmentName = d.getEquipmentName();
         r.equipmentModel = d.getEquipmentModel();
         r.isRented = d.getIsRented();
@@ -70,7 +68,6 @@ public class DemandResponse {
     public String getAssetTag() { return assetTag; }
     public String getCurrentTechnicalNote() { return currentTechnicalNote; }
     public UUID getAssigneeUserId() { return assigneeUserId; }
-    public String getAssigneeName() { return assigneeName; }
     public String getEquipmentName() { return equipmentName; }
     public String getEquipmentModel() { return equipmentModel; }
     public Boolean getIsRented() { return isRented; }

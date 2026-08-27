@@ -114,10 +114,11 @@ public class DemandController {
         verifyDemandAccess(demandService.findById(id), jwt);
         DemandEntity demand = demandService.changeStatus(
             id, request.getStatus(), request.getJustification(), resolveActorName(jwt));
+        String actorName = resolveActorName(jwt);
         if (request.getStatus() == br.gov.crateus.bcm.saged.domain.DemandStatus.DONE) {
-            telegramBotService.notifyDemandConcluded(demand, request.getJustification());
+            telegramBotService.notifyDemandConcluded(demand, actorName, request.getJustification());
         } else if (request.getStatus() == br.gov.crateus.bcm.saged.domain.DemandStatus.INTERRUPTED) {
-            telegramBotService.notifyDemandInterrupted(demand, request.getJustification());
+            telegramBotService.notifyDemandInterrupted(demand, actorName, request.getJustification());
         }
         return DemandResponse.from(demand);
     }
@@ -129,9 +130,8 @@ public class DemandController {
                                   @RequestBody @Valid AssignDemandRequest request,
                                   @AuthenticationPrincipal Jwt jwt) {
         verifyDemandAccess(demandService.findById(id), jwt);
-        String assigneeName = jwt.getClaimAsString("name");
-        if (assigneeName == null) assigneeName = jwt.getClaimAsString("preferred_username");
-        DemandEntity demand = demandService.assign(id, request.getAssigneeUserId(), assigneeName, resolveActorName(jwt));
+        String assigneeName = jwt.getClaimAsString("preferred_username");
+        DemandEntity demand = demandService.assign(id, request.getAssigneeUserId(), resolveActorName(jwt));
         telegramBotService.notifyDemandAssigned(demand, assigneeName != null ? assigneeName : "Tecnico");
         return DemandResponse.from(demand);
     }
