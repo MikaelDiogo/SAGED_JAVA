@@ -138,7 +138,7 @@ public class DemandController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER')")
     @Operation(summary = "Change demand status")
     public DemandResponse changeStatus(@PathVariable UUID id,
                                         @RequestBody @Valid ChangeStatusRequest request,
@@ -156,7 +156,7 @@ public class DemandController {
     }
 
     @PatchMapping("/{id}/assignee")
-    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
+    @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER')")
     @Operation(summary = "Assign a technician to a demand")
     public DemandResponse assign(@PathVariable UUID id,
                                   @RequestBody @Valid AssignDemandRequest request,
