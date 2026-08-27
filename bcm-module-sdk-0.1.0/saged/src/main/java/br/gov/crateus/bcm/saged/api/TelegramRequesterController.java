@@ -86,20 +86,21 @@ public class TelegramRequesterController {
             Authentication auth,
             @AuthenticationPrincipal Jwt jwt) {
         TelegramRequesterEntity e = repository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Requester not found: " + id));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Requester not found: " + id));
 
         if (e.getStatus() != TelegramRequesterStatus.PENDING) {
-            throw new IllegalStateException("Only PENDING requesters can be approved");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING requesters can be approved");
         }
 
         if (isAdminGeral(auth)) {
             UUID deptId = (departmentIdStr != null && !departmentIdStr.isBlank())
                 ? UUID.fromString(departmentIdStr)
                 : e.getDepartmentId();
-            if (deptId == null) throw new IllegalArgumentException("departmentId é obrigatório para aprovar");
+            if (deptId == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "departmentId is required to approve");
             e.setDepartmentId(deptId);
         } else {
-            e.setDepartmentId(extractOrgUnitId(jwt));
+            UUID callerDept = extractOrgUnitId(jwt);
+            e.setDepartmentId(callerDept);
         }
 
         e.setStatus(TelegramRequesterStatus.ACTIVE);
@@ -132,11 +133,11 @@ public class TelegramRequesterController {
     @PatchMapping("/{id}/reject")
     @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR')")
     @Operation(summary = "Reject a pending Telegram requester")
-    public TelegramRequesterResponse reject(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        TelegramRequesterEntity e = repository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Requester not found: " + id));
+    public TelegramRequesterResponse reject(@PathVariable UUID id, Authentication auth,
+                                             @AuthenticationPrincipal Jwt jwt) {
+        TelegramRequesterEntity e = findRequesterWithAccess(id, auth, jwt);
         if (e.getStatus() != TelegramRequesterStatus.PENDING) {
-            throw new IllegalStateException("Only PENDING requesters can be rejected");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING requesters can be rejected");
         }
         e.setStatus(TelegramRequesterStatus.INACTIVE);
         e.setUpdatedBy(jwt.getSubject());
@@ -146,9 +147,9 @@ public class TelegramRequesterController {
     @PatchMapping("/{id}/deactivate")
     @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR')")
     @Operation(summary = "Deactivate an active Telegram requester")
-    public TelegramRequesterResponse deactivate(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        TelegramRequesterEntity e = repository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Requester not found: " + id));
+    public TelegramRequesterResponse deactivate(@PathVariable UUID id, Authentication auth,
+                                                 @AuthenticationPrincipal Jwt jwt) {
+        TelegramRequesterEntity e = findRequesterWithAccess(id, auth, jwt);
         e.setStatus(TelegramRequesterStatus.INACTIVE);
         e.setUpdatedBy(jwt.getSubject());
         return TelegramRequesterResponse.from(repository.save(e));
@@ -157,15 +158,27 @@ public class TelegramRequesterController {
     @PatchMapping("/{id}/activate")
     @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR')")
     @Operation(summary = "Reactivate an inactive Telegram requester")
-    public TelegramRequesterResponse activate(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
-        TelegramRequesterEntity e = repository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Requester not found: " + id));
+    public TelegramRequesterResponse activate(@PathVariable UUID id, Authentication auth,
+                                               @AuthenticationPrincipal Jwt jwt) {
+        TelegramRequesterEntity e = findRequesterWithAccess(id, auth, jwt);
         if (e.getDepartmentId() == null) {
-            throw new IllegalArgumentException("Cannot activate a requester without a departmentId");
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Cannot activate a requester without a departmentId");
         }
         e.setStatus(TelegramRequesterStatus.ACTIVE);
         e.setUpdatedBy(jwt.getSubject());
         return TelegramRequesterResponse.from(repository.save(e));
+    }
+
+    private TelegramRequesterEntity findRequesterWithAccess(UUID id, Authentication auth, Jwt jwt) {
+        TelegramRequesterEntity e = repository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Requester not found: " + id));
+        if (!isAdminGeral(auth)) {
+            UUID callerDept = extractOrgUnitId(jwt);
+            if (!callerDept.equals(e.getDepartmentId())) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Requester not found: " + id);
+            }
+        }
+        return e;
     }
 
     private static boolean isAdminGeral(Authentication auth) {
