@@ -234,16 +234,16 @@ public class DemandController {
                     throw new ResponseStatusException(HttpStatus.FORBIDDEN, "org_unit_id claim is required for this role");
                 }
                 if (!orgUnitId.equals(demand.getDepartmentId())) {
-                    throw new IllegalArgumentException("Demand not found: " + demand.getId());
+                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Demand not found: " + demand.getId());
                 }
             }
             case "SAGED_TECNICO" -> {
                 List<String> codes = resolveSpecialtyCodes(jwt);
                 if (codes.isEmpty() || demand.getSpecialty() == null || !codes.contains(demand.getSpecialty().getCode())) {
-                    throw new IllegalArgumentException("Demand not found: " + demand.getId());
+                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Demand not found: " + demand.getId());
                 }
             }
-            default -> throw new IllegalArgumentException("Demand not found: " + demand.getId());
+            default -> throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Demand not found: " + demand.getId());
         }
     }
 

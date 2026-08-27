@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -129,7 +131,7 @@ public class DemandService {
     @Transactional(readOnly = true)
     public DemandEntity findById(UUID id) {
         return demandRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Demand not found: " + id));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Demand not found: " + id));
     }
 
     @Transactional(readOnly = true)
@@ -158,7 +160,7 @@ public class DemandService {
     @Transactional(readOnly = true)
     public List<DemandHistoryEntity> getHistory(UUID demandId) {
         if (!demandRepository.existsById(demandId)) {
-            throw new IllegalArgumentException("Demand not found: " + demandId);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Demand not found: " + demandId);
         }
         return historyRepository.findByDemandIdOrdered(demandId);
     }
