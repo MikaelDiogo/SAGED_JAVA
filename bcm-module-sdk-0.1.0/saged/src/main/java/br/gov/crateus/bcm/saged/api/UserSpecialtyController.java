@@ -85,13 +85,14 @@ public class UserSpecialtyController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SAGED_ADMIN_GERAL')")
-    @Operation(summary = "Remove a user-specialty assignment (ADMIN_GERAL only)")
+    @Operation(summary = "Deactivate a user-specialty assignment — soft delete (ADMIN_GERAL only)")
     @Transactional
-    public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        if (!userSpecialtyRepository.existsById(id)) {
-            throw new IllegalArgumentException("User-specialty assignment not found: " + id);
-        }
-        userSpecialtyRepository.deleteById(id);
+    public ResponseEntity<Void> deactivate(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        UserSpecialtyEntity e = userSpecialtyRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User-specialty assignment not found: " + id));
+        e.setLifecycleStatus("INACTIVE");
+        e.setUpdatedBy(jwt.getSubject());
+        userSpecialtyRepository.save(e);
         return ResponseEntity.noContent().build();
     }
 }
