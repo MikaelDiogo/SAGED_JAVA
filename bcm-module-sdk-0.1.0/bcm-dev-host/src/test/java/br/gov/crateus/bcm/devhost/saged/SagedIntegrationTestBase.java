@@ -59,6 +59,8 @@ abstract class SagedIntegrationTestBase {
                 saged.telegram_requester_authorizations,
                 saged.telegram_demand_requesters,
                 saged.user_specialties,
+                saged.demand_views,
+                saged.system_notifications,
                 saged.demand_history,
                 saged.demands,
                 saged.assets,
