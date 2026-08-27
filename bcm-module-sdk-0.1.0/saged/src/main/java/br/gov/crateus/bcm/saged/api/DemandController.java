@@ -40,6 +40,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/v1/saged/demands")
@@ -91,6 +92,9 @@ public class DemandController {
             : pageable;
         String role = resolveTopRole();
         UUID orgUnitId = resolveOrgUnitId(jwt);
+        if (("SAGED_ADMIN_SETOR".equals(role) || "SAGED_TECNICO_LIDER".equals(role)) && orgUnitId == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "org_unit_id claim is required for this role");
+        }
         List<String> specialtyCodes = resolveSpecialtyCodes(jwt);
         return demandService.list(role, orgUnitId, specialtyCodes,
                 status, specialtyId, departmentId, bounded)
@@ -215,7 +219,10 @@ public class DemandController {
             case "SAGED_ADMIN_GERAL" -> {} // sees all
             case "SAGED_ADMIN_SETOR", "SAGED_TECNICO_LIDER" -> {
                 UUID orgUnitId = resolveOrgUnitId(jwt);
-                if (orgUnitId != null && !orgUnitId.equals(demand.getDepartmentId())) {
+                if (orgUnitId == null) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "org_unit_id claim is required for this role");
+                }
+                if (!orgUnitId.equals(demand.getDepartmentId())) {
                     throw new IllegalArgumentException("Demand not found: " + demand.getId());
                 }
             }
