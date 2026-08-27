@@ -1,5 +1,6 @@
 package br.gov.crateus.bcm.saged.application;
 
+import br.gov.crateus.bcm.sdk.outbox.OutboxRecorder;
 import br.gov.crateus.bcm.saged.domain.DemandStatus;
 import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.DemandHistoryEntity;
@@ -34,13 +35,16 @@ public class DemandService {
     private final DemandRepository demandRepository;
     private final DemandHistoryRepository historyRepository;
     private final SpecialtyRepository specialtyRepository;
+    private final OutboxRecorder outboxRecorder;
 
     public DemandService(DemandRepository demandRepository,
                          DemandHistoryRepository historyRepository,
-                         SpecialtyRepository specialtyRepository) {
+                         SpecialtyRepository specialtyRepository,
+                         OutboxRecorder outboxRecorder) {
         this.demandRepository = demandRepository;
         this.historyRepository = historyRepository;
         this.specialtyRepository = specialtyRepository;
+        this.outboxRecorder = outboxRecorder;
     }
 
     public DemandEntity create(String title, String description, String specialtyCode,
@@ -69,6 +73,13 @@ public class DemandService {
 
         demand = demandRepository.save(demand);
         recordHistory(demand, "CREATED", null, actor);
+        outboxRecorder.record("Demand", demand.getId().toString(), "DemandCreated", Map.of(
+            "protocol", demand.getProtocol(),
+            "departmentId", demand.getDepartmentId().toString(),
+            "requesterUserId", demand.getRequesterUserId().toString(),
+            "specialtyCode", specialty.getCode(),
+            "status", demand.getStatus().name()
+        ));
         return demand;
     }
 
@@ -86,10 +97,17 @@ public class DemandService {
                 "Justification is required when interrupting a demand");
         }
 
+        DemandStatus previousStatus = demand.getStatus();
         demand.setStatus(newStatus);
         demand.setUpdatedBy(actor);
         demand = demandRepository.save(demand);
         recordHistory(demand, newStatus.name(), justification, actor);
+        outboxRecorder.record("Demand", demand.getId().toString(), "DemandStatusChanged", Map.of(
+            "protocol", demand.getProtocol(),
+            "previousStatus", previousStatus.name(),
+            "newStatus", newStatus.name(),
+            "actor", actor
+        ));
         return demand;
     }
 

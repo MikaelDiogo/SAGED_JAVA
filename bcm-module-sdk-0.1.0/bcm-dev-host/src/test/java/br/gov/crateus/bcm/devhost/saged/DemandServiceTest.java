@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import br.gov.crateus.bcm.sdk.outbox.OutboxRecorder;
 import br.gov.crateus.bcm.saged.application.DemandService;
 import br.gov.crateus.bcm.saged.domain.DemandStatus;
 import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
@@ -31,12 +32,13 @@ class DemandServiceTest {
     @Mock DemandRepository demandRepository;
     @Mock DemandHistoryRepository historyRepository;
     @Mock SpecialtyRepository specialtyRepository;
+    @Mock OutboxRecorder outboxRecorder;
 
     DemandService service;
 
     @BeforeEach
     void setUp() {
-        service = new DemandService(demandRepository, historyRepository, specialtyRepository);
+        service = new DemandService(demandRepository, historyRepository, specialtyRepository, outboxRecorder);
     }
 
     @Test
