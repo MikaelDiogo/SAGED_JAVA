@@ -1,6 +1,6 @@
 package br.gov.crateus.bcm.saged.infrastructure.entity;
 
-import br.gov.crateus.bcm.sdk.persistence.SdkAuditableEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.SagedAuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -11,7 +11,7 @@ import java.util.UUID;
 
 @Entity
 @Table(schema = "saged", name = "user_specialties")
-public class UserSpecialtyEntity extends SdkAuditableEntity {
+public class UserSpecialtyEntity extends SagedAuditableEntity {
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;

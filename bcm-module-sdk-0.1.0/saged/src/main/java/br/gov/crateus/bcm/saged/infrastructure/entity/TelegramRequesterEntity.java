@@ -1,6 +1,6 @@
 package br.gov.crateus.bcm.saged.infrastructure.entity;
 
-import br.gov.crateus.bcm.sdk.persistence.SdkAuditableEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.SagedAuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Entity
 @Table(schema = "saged", name = "telegram_demand_requesters")
-public class TelegramRequesterEntity extends SdkAuditableEntity {
+public class TelegramRequesterEntity extends SagedAuditableEntity {
 
     @Column(name = "telegram_chat_id", length = 128)
     private String telegramChatId;

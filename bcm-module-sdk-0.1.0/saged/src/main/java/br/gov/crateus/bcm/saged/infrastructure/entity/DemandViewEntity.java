@@ -1,6 +1,6 @@
 package br.gov.crateus.bcm.saged.infrastructure.entity;
 
-import br.gov.crateus.bcm.sdk.persistence.SdkAuditableEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.SagedAuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @Entity
 @Table(schema = "saged", name = "demand_views")
-public class DemandViewEntity extends SdkAuditableEntity {
+public class DemandViewEntity extends SagedAuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "demand_id", nullable = false)

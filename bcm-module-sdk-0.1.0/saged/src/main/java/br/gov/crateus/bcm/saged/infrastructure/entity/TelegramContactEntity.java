@@ -1,13 +1,13 @@
 package br.gov.crateus.bcm.saged.infrastructure.entity;
 
-import br.gov.crateus.bcm.sdk.persistence.SdkAuditableEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.SagedAuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
 @Entity
 @Table(schema = "saged", name = "telegram_contacts")
-public class TelegramContactEntity extends SdkAuditableEntity {
+public class TelegramContactEntity extends SagedAuditableEntity {
 
     @Column(name = "telegram_user_id", length = 128, nullable = false, unique = true)
     private String telegramUserId;

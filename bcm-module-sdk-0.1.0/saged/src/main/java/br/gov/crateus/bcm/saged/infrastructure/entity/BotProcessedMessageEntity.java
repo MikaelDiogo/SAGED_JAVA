@@ -1,6 +1,6 @@
 package br.gov.crateus.bcm.saged.infrastructure.entity;
 
-import br.gov.crateus.bcm.sdk.persistence.SdkAuditableEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.SagedAuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -8,7 +8,7 @@ import java.time.OffsetDateTime;
 
 @Entity
 @Table(schema = "saged", name = "bot_processed_messages")
-public class BotProcessedMessageEntity extends SdkAuditableEntity {
+public class BotProcessedMessageEntity extends SagedAuditableEntity {
 
     @Column(name = "provider", length = 32, nullable = false)
     private String provider = "TELEGRAM";

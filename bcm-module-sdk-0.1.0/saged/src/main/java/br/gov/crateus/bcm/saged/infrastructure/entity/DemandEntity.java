@@ -1,6 +1,6 @@
 package br.gov.crateus.bcm.saged.infrastructure.entity;
 
-import br.gov.crateus.bcm.sdk.persistence.SdkAuditableEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.SagedAuditableEntity;
 import br.gov.crateus.bcm.saged.domain.DemandStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @Entity
 @Table(schema = "saged", name = "demands")
-public class DemandEntity extends SdkAuditableEntity {
+public class DemandEntity extends SagedAuditableEntity {
 
     @Column(name = "protocol", length = 64, nullable = false, unique = true)
     private String protocol;

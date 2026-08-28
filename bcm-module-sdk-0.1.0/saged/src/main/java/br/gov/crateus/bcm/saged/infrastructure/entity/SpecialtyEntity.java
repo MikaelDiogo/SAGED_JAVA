@@ -1,13 +1,13 @@
 package br.gov.crateus.bcm.saged.infrastructure.entity;
 
-import br.gov.crateus.bcm.sdk.persistence.SdkAuditableEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.SagedAuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
 @Entity
 @Table(schema = "saged", name = "specialties")
-public class SpecialtyEntity extends SdkAuditableEntity {
+public class SpecialtyEntity extends SagedAuditableEntity {
 
     @Column(name = "code", length = 32, nullable = false, unique = true)
     private String code;

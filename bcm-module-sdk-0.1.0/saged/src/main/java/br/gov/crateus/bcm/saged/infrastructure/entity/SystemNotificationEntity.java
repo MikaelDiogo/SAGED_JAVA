@@ -1,6 +1,6 @@
 package br.gov.crateus.bcm.saged.infrastructure.entity;
 
-import br.gov.crateus.bcm.sdk.persistence.SdkAuditableEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.SagedAuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -8,7 +8,7 @@ import java.util.UUID;
 
 @Entity
 @Table(schema = "saged", name = "system_notifications")
-public class SystemNotificationEntity extends SdkAuditableEntity {
+public class SystemNotificationEntity extends SagedAuditableEntity {
 
     @Column(name = "recipient_user_id")
     private UUID recipientUserId;
