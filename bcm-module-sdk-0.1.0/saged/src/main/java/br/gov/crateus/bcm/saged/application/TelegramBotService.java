@@ -231,7 +231,7 @@ public class TelegramBotService {
                 }
                 case "WAITING_PROTOCOL" -> {
                     sessions.remove(telegramUserId);
-                    handleStatus(chatId, text);
+                    handleStatus(chatId, text, requester);
                     return;
                 }
             }
@@ -248,7 +248,7 @@ public class TelegramBotService {
         } else if (trimmed.equalsIgnoreCase("/minhas")) {
             handleListDemands(chatId, requester);
         } else if (trimmed.startsWith("/status ")) {
-            handleStatus(chatId, trimmed.substring("/status ".length()).trim());
+            handleStatus(chatId, trimmed.substring("/status ".length()).trim(), requester);
         } else {
             sender.sendApprovedMenu(chatId);
         }
@@ -288,17 +288,23 @@ public class TelegramBotService {
         sender.sendMessage(chatId, sb.toString());
     }
 
-    private void handleStatus(long chatId, String protocol) {
+    private void handleStatus(long chatId, String protocol, TelegramRequesterEntity requester) {
         if (protocol == null || protocol.isBlank()) {
             sender.sendMessage(chatId, "Protocolo invalido\\.");
             return;
         }
         demandService.findByProtocol(protocol).ifPresentOrElse(
-            d -> sender.sendMessage(chatId,
-                "Protocolo: `" + TelegramSender.escape(d.getProtocol()) + "`\n" +
-                "Titulo: " + TelegramSender.escape(d.getTitle()) + "\n" +
-                "Status: *" + translateStatus(d.getStatus()) + "*\n" +
-                (d.getAssigneeUserId() != null ? "Tecnico: atribuido" : "Tecnico: _nao atribuido_")),
+            d -> {
+                if (!requester.getId().equals(d.getRequesterUserId())) {
+                    sender.sendMessage(chatId, "Protocolo nao encontrado: `" + TelegramSender.escape(protocol) + "`");
+                    return;
+                }
+                sender.sendMessage(chatId,
+                    "Protocolo: `" + TelegramSender.escape(d.getProtocol()) + "`\n" +
+                    "Titulo: " + TelegramSender.escape(d.getTitle()) + "\n" +
+                    "Status: *" + translateStatus(d.getStatus()) + "*\n" +
+                    (d.getAssigneeUserId() != null ? "Tecnico: atribuido" : "Tecnico: _nao atribuido_"));
+            },
             () -> sender.sendMessage(chatId, "Protocolo nao encontrado: `" + TelegramSender.escape(protocol) + "`")
         );
     }
