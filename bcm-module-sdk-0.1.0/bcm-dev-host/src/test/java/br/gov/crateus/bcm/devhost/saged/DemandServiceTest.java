@@ -196,10 +196,11 @@ class DemandServiceTest {
     private DemandEntity demand(DemandStatus status) {
         DemandEntity d = new DemandEntity();
         d.setStatus(status);
+        d.setProtocol("2026-0001-HW-00001");
         d.setTitle("Test demand");
         d.setDescription("Test description");
         d.setRequesterUserId(UUID.randomUUID());
-        d.setDepartmentId(UUID.randomUUID());
+        d.setDepartmentId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
         return d;
     }
 }
