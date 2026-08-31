@@ -101,7 +101,7 @@ public class DemandController {
             : pageable;
         String role = resolveTopRole();
         UUID orgUnitId = resolveOrgUnitId(jwt);
-        if (("SAGED_ADMIN_SETOR".equals(role) || "SAGED_TECNICO_LIDER".equals(role)) && orgUnitId == null) {
+        if (("SAGED_ADMIN_SETOR".equals(role) || "SAGED_TECNICO_LIDER".equals(role) || "SAGED_TECNICO".equals(role)) && orgUnitId == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "org_unit_id claim is required for this role");
         }
         List<String> specialtyCodes = resolveSpecialtyCodes(jwt);
@@ -121,7 +121,7 @@ public class DemandController {
             @AuthenticationPrincipal Jwt jwt) {
         String role = resolveTopRole();
         UUID orgUnitId = resolveOrgUnitId(jwt);
-        if (("SAGED_ADMIN_SETOR".equals(role) || "SAGED_TECNICO_LIDER".equals(role)) && orgUnitId == null) {
+        if (("SAGED_ADMIN_SETOR".equals(role) || "SAGED_TECNICO_LIDER".equals(role) || "SAGED_TECNICO".equals(role)) && orgUnitId == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "org_unit_id claim is required for this role");
         }
         return demandService.list(role, orgUnitId, List.of(), status, specialtyId, departmentId, pageable)
@@ -256,8 +256,11 @@ public class DemandController {
                 }
             }
             case "SAGED_TECNICO" -> {
+                UUID orgUnitId = resolveOrgUnitId(jwt);
                 List<String> codes = resolveSpecialtyCodes(jwt);
-                if (codes.isEmpty() || demand.getSpecialty() == null || !codes.contains(demand.getSpecialty().getCode())) {
+                if (orgUnitId == null || codes.isEmpty()
+                        || demand.getSpecialty() == null || !codes.contains(demand.getSpecialty().getCode())
+                        || !orgUnitId.equals(demand.getDepartmentId())) {
                     throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Demand not found: " + demand.getId());
                 }
             }
