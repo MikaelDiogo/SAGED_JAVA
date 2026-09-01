@@ -45,7 +45,7 @@ public class TelegramMiniAppController {
         return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html);
     }
 
-    @GetMapping(value = "/telegram/info", produces = MediaType.TEXT_HTML_VALUE)
+    @GetMapping(value = "/telegram/app/info", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<byte[]> infoPage(HttpServletResponse response) throws IOException {
         response.setHeader("ngrok-skip-browser-warning", "69420");
         response.setHeader("Cache-Control", "no-store");

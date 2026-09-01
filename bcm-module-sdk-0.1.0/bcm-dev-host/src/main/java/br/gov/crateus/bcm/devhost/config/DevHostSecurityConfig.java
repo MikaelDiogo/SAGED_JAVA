@@ -47,8 +47,6 @@ public class DevHostSecurityConfig {
 					auth.requestMatchers(HttpMethod.POST, "/api/v1/*/webhooks/**").permitAll();
 					// Telegram Mini App — authenticated by Telegram initData, not JWT.
 					auth.requestMatchers("/telegram/app", "/telegram/app/**").permitAll();
-					auth.requestMatchers("/telegram/info", "/telegram/info/**").permitAll();
-					auth.requestMatchers("/telegram/tech", "/telegram/tech/**").permitAll();
 					if (securityProperties.jwtEnabled()) {
 						auth.anyRequest().authenticated();
 					} else {

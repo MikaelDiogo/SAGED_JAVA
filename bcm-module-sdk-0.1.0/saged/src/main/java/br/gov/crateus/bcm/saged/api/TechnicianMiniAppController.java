@@ -41,7 +41,7 @@ public class TechnicianMiniAppController {
         this.initDataValidator = initDataValidator;
     }
 
-    @GetMapping(value = "/telegram/tech", produces = MediaType.TEXT_HTML_VALUE)
+    @GetMapping(value = "/telegram/app/tech", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<byte[]> techMiniApp(HttpServletResponse response) throws IOException {
         response.setHeader("ngrok-skip-browser-warning", "69420");
         response.setHeader("Cache-Control", "no-store");
