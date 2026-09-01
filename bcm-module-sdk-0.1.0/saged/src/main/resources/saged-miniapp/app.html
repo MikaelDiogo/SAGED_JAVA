@@ -281,22 +281,35 @@
     window.scrollTo(0, 0);
   }
 
-  function submit() {
+  async function submit() {
     const title = document.getElementById('titleIn').value.trim();
     const desc  = document.getElementById('descIn').value.trim();
     const err   = document.getElementById('errBox');
     const btn   = document.getElementById('submitBtn');
-    if (!title) { err.textContent = 'Informe o tÃ­tulo do chamado.'; err.classList.add('show'); return; }
+    if (!title) { err.textContent = 'Informe o título do chamado.'; err.classList.add('show'); return; }
 
     err.classList.remove('show');
     btn.disabled = true;
-    btn.textContent = 'Enviandoâ€¦';
-
-    const payload = { specialtyCode: code, title: title };
-    if (desc) payload.description = desc;
+    btn.textContent = 'Enviando…';
 
     try {
-      tg.sendData(JSON.stringify(payload));
+      const res = await fetch('/api/v1/saged/webhooks/miniapp/demand', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          initData: tg?.initData || '',
+          specialtyCode: code,
+          title: title,
+          description: desc || null
+        })
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(body || res.statusText);
+      }
+      const data = await res.json();
+      document.getElementById('proto').textContent = data.protocol;
+      show('p3');
     } catch (e) {
       err.textContent = 'Erro ao enviar: ' + e.message;
       err.classList.add('show');

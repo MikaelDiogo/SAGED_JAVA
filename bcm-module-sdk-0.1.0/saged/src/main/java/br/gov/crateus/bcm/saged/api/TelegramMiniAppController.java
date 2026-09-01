@@ -86,9 +86,13 @@ public class TelegramMiniAppController {
         }
         TelegramRequesterEntity requester = opt.get();
 
+        String description = (request.getDescription() != null && !request.getDescription().isBlank())
+            ? request.getDescription()
+            : request.getTitle();
+
         DemandEntity demand = demandService.create(
             request.getTitle(),
-            "Criado via Telegram",
+            description,
             request.getSpecialtyCode(),
             null,
             requester.getId(),
@@ -158,12 +162,15 @@ public class TelegramMiniAppController {
         private String initData;
         private String specialtyCode;
         private String title;
+        private String description;
 
-        public String getInitData()           { return initData; }
-        public void setInitData(String v)     { this.initData = v; }
-        public String getSpecialtyCode()      { return specialtyCode; }
-        public void setSpecialtyCode(String v){ this.specialtyCode = v; }
-        public String getTitle()              { return title; }
-        public void setTitle(String v)        { this.title = v; }
+        public String getInitData()              { return initData; }
+        public void setInitData(String v)        { this.initData = v; }
+        public String getSpecialtyCode()         { return specialtyCode; }
+        public void setSpecialtyCode(String v)   { this.specialtyCode = v; }
+        public String getTitle()                 { return title; }
+        public void setTitle(String v)           { this.title = v; }
+        public String getDescription()           { return description; }
+        public void setDescription(String v)     { this.description = v; }
     }
 }
