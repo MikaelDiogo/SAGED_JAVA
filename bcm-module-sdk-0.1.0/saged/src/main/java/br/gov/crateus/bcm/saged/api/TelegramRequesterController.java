@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@RequestMapping("/api/v1/saged/telegram/requesters")
+@RequestMapping("/api/v1/saged/telegram-demand-requesters")
 @Tag(name = "saged-telegram")
 public class TelegramRequesterController {
 
