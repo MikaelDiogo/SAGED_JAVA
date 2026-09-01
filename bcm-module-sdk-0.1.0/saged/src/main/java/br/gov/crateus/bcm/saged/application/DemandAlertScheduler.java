@@ -4,6 +4,8 @@ import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.SystemNotificationEntity;
 import br.gov.crateus.bcm.saged.infrastructure.repository.DemandRepository;
 import br.gov.crateus.bcm.saged.infrastructure.repository.SystemNotificationRepository;
+import br.gov.crateus.bcm.saged.infrastructure.repository.TelegramLinkCodeRepository;
+import br.gov.crateus.bcm.saged.infrastructure.repository.TelegramSessionRepository;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -21,11 +23,25 @@ public class DemandAlertScheduler {
 
     private final DemandRepository demandRepository;
     private final SystemNotificationRepository notificationRepository;
+    private final TelegramSessionRepository sessionRepository;
+    private final TelegramLinkCodeRepository linkCodeRepository;
 
     public DemandAlertScheduler(DemandRepository demandRepository,
-                                 SystemNotificationRepository notificationRepository) {
+                                 SystemNotificationRepository notificationRepository,
+                                 TelegramSessionRepository sessionRepository,
+                                 TelegramLinkCodeRepository linkCodeRepository) {
         this.demandRepository = demandRepository;
         this.notificationRepository = notificationRepository;
+        this.sessionRepository = sessionRepository;
+        this.linkCodeRepository = linkCodeRepository;
+    }
+
+    @Scheduled(cron = "0 */15 * * * *")
+    @Transactional
+    public void purgeExpiredTelegramData() {
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        sessionRepository.deleteExpired(now);
+        linkCodeRepository.deleteExpired(now);
     }
 
     @Scheduled(cron = "0 0 8 * * *")
