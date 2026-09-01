@@ -68,7 +68,7 @@ public class UserSpecialtyController {
             @RequestBody @Valid CreateUserSpecialtyRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         SpecialtyEntity specialty = specialtyRepository.findById(request.getSpecialtyId())
-            .orElseThrow(() -> new IllegalArgumentException("Specialty not found: " + request.getSpecialtyId()));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Specialty not found: " + request.getSpecialtyId()));
 
         if (userSpecialtyRepository.existsByUserIdAndSpecialtyIdAndLifecycleStatus(request.getUserId(), request.getSpecialtyId(), "ACTIVE")) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "User already assigned to this specialty");

@@ -128,10 +128,10 @@ class UserSpecialtyIntegrationTest extends SagedIntegrationTestBase {
     }
 
     @Test
-    void deleteAssignment_notFound_returns400() throws Exception {
+    void deleteAssignment_notFound_returns404() throws Exception {
         mockMvc.perform(delete("/api/v1/saged/user-specialties/{id}", UUID.randomUUID())
                         .with(adminJwt()))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
     }
 
     // --- helper ---
