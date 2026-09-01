@@ -8,6 +8,7 @@ public class SagedTelegramProperties {
     private String botToken;
     private String webhookSecret;
     private String webhookUrl;
+    private String miniAppBaseUrl;
 
     public String getBotToken() { return botToken; }
     public void setBotToken(String botToken) { this.botToken = botToken; }
@@ -17,4 +18,7 @@ public class SagedTelegramProperties {
 
     public String getWebhookUrl() { return webhookUrl; }
     public void setWebhookUrl(String webhookUrl) { this.webhookUrl = webhookUrl; }
+
+    public String getMiniAppBaseUrl() { return miniAppBaseUrl; }
+    public void setMiniAppBaseUrl(String miniAppBaseUrl) { this.miniAppBaseUrl = miniAppBaseUrl; }
 }

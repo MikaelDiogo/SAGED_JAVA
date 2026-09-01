@@ -14,9 +14,11 @@ public class TelegramSender {
 
     private final RestClient restClient;
     private final String botToken;
+    private final String miniAppBaseUrl;
 
     public TelegramSender(SagedTelegramProperties props) {
         this.botToken = props.getBotToken();
+        this.miniAppBaseUrl = props.getMiniAppBaseUrl();
         this.restClient = RestClient.create(BASE_URL);
     }
 
@@ -25,13 +27,16 @@ public class TelegramSender {
     }
 
     public void sendMainMenu(long chatId) {
+        Map<String, Object> sobreBtn = hasMiniApp()
+            ? Map.of("text", "Sobre o SAGED", "web_app", Map.of("url", miniAppBaseUrl + "/telegram/info"))
+            : Map.of("text", "Sobre o SAGED", "callback_data", "sobre_saged");
         post(Map.of(
             "chat_id", chatId,
             "text", "*Bem\\-vindo ao SAGED*\n\nSistema de Suporte de TI da Prefeitura de Crateús\\.\nSelecione uma opcao abaixo:",
             "parse_mode", "MarkdownV2",
             "reply_markup", Map.of(
                 "inline_keyboard", List.of(
-                    List.of(Map.of("text", "Sobre o SAGED", "callback_data", "sobre_saged")),
+                    List.of(sobreBtn),
                     List.of(Map.of("text", "Validar meu numero", "callback_data", "validar_numero"))
                 )
             )
@@ -73,13 +78,16 @@ public class TelegramSender {
     }
 
     public void sendApprovedMenu(long chatId) {
+        Map<String, Object> chamadoBtn = hasMiniApp()
+            ? Map.of("text", "Abrir Chamado", "web_app", Map.of("url", miniAppBaseUrl + "/telegram/app"))
+            : Map.of("text", "Abrir Chamado", "callback_data", "abrir_chamado");
         post(Map.of(
             "chat_id", chatId,
             "text", "Acesso autorizado\\! Selecione uma opcao:",
             "parse_mode", "MarkdownV2",
             "reply_markup", Map.of(
                 "inline_keyboard", List.of(
-                    List.of(Map.of("text", "Abrir Chamado", "callback_data", "abrir_chamado")),
+                    List.of(chamadoBtn),
                     List.of(Map.of("text", "Minhas Demandas", "callback_data", "minhas_demandas")),
                     List.of(Map.of("text", "Consultar Status", "callback_data", "consultar_status"))
                 )
@@ -198,6 +206,10 @@ public class TelegramSender {
             .body(body)
             .retrieve()
             .toBodilessEntity();
+    }
+
+    private boolean hasMiniApp() {
+        return miniAppBaseUrl != null && !miniAppBaseUrl.isBlank();
     }
 
     public static String escape(String text) {

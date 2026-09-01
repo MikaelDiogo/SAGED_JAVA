@@ -44,6 +44,7 @@ saged:
     bot-token: ${SAGED_TELEGRAM_BOT_TOKEN:}
     webhook-secret: ${SAGED_TELEGRAM_WEBHOOK_SECRET:}
     webhook-url: ${SAGED_TELEGRAM_WEBHOOK_URL:}
+    mini-app-base-url: ${SAGED_TELEGRAM_MINI_APP_BASE_URL:}
 
 logging:
   level:
