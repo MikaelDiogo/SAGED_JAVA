@@ -10,4 +10,6 @@ docker/keycloak/realm-bcm-sdk.json.bak
 *.env
 CONTEXTO_PROJETO_SAGED.md
 **/application-local.yml
-SAGED_FrontEnd/
+SAGED_FrontEnd/node_modules/
+SAGED_FrontEnd/dist/
+SAGED_FrontEnd/*.zip
