@@ -160,10 +160,43 @@ class DemandVisibilityMatrixTest extends SagedIntegrationTestBase {
                 .andExpect(status().isOk());
     }
 
+    // ── TECNICO history/viewers access ───────────────────────────────────────
+
+    @Test
+    void tecnico_cannotAccessHistoryOfDemandOutsideSpecialty() throws Exception {
+        String resp = createDemandAndReturnJson(TEST_DEPT_ID, "NET");
+        UUID demandId = UUID.fromString(objectMapper.readTree(resp).get("id").asText());
+
+        mockMvc.perform(get("/api/v1/saged/demands/{id}/history", demandId).with(tecnicoJwt()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void tecnico_cannotAccessViewersOfDemandOutsideSpecialty() throws Exception {
+        String resp = createDemandAndReturnJson(TEST_DEPT_ID, "NET");
+        UUID demandId = UUID.fromString(objectMapper.readTree(resp).get("id").asText());
+
+        mockMvc.perform(get("/api/v1/saged/demands/{id}/viewers", demandId).with(tecnicoJwt()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void tecnicoLider_cannotAccessHistoryOfOtherUnitDemand() throws Exception {
+        String resp = createDemandAndReturnJson(OTHER_DEPT_ID, "HW");
+        UUID demandId = UUID.fromString(objectMapper.readTree(resp).get("id").asText());
+
+        mockMvc.perform(get("/api/v1/saged/demands/{id}/history", demandId).with(lidJwt()))
+                .andExpect(status().isNotFound());
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private void createDemand(UUID deptId, String specialtyCode) throws Exception {
-        mockMvc.perform(post("/api/v1/saged/demands")
+        createDemandAndReturnJson(deptId, specialtyCode);
+    }
+
+    private String createDemandAndReturnJson(UUID deptId, String specialtyCode) throws Exception {
+        return mockMvc.perform(post("/api/v1/saged/demands")
                         .with(adminJwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
@@ -172,6 +205,7 @@ class DemandVisibilityMatrixTest extends SagedIntegrationTestBase {
                                 "specialtyCode", specialtyCode,
                                 "departmentId", deptId
                         ))))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
     }
 }

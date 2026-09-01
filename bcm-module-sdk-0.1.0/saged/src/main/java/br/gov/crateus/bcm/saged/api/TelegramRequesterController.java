@@ -100,6 +100,9 @@ public class TelegramRequesterController {
             e.setDepartmentId(deptId);
         } else {
             UUID callerDept = extractOrgUnitId(jwt);
+            if (e.getDepartmentId() != null && !callerDept.equals(e.getDepartmentId())) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Requester not found: " + id);
+            }
             e.setDepartmentId(callerDept);
         }
 
