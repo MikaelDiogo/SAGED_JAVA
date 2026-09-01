@@ -52,12 +52,12 @@ public class UserSpecialtyController {
             @RequestParam(required = false) UUID specialtyId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         if (userId != null) {
-            return userSpecialtyRepository.findByUserId(userId, pageable).map(UserSpecialtyResponse::from);
+            return userSpecialtyRepository.findByUserIdAndLifecycleStatus(userId, "ACTIVE", pageable).map(UserSpecialtyResponse::from);
         }
         if (specialtyId != null) {
-            return userSpecialtyRepository.findBySpecialtyId(specialtyId, pageable).map(UserSpecialtyResponse::from);
+            return userSpecialtyRepository.findBySpecialtyIdAndLifecycleStatus(specialtyId, "ACTIVE", pageable).map(UserSpecialtyResponse::from);
         }
-        return userSpecialtyRepository.findAll(pageable).map(UserSpecialtyResponse::from);
+        return userSpecialtyRepository.findAllByLifecycleStatus("ACTIVE", pageable).map(UserSpecialtyResponse::from);
     }
 
     @PostMapping
@@ -70,7 +70,7 @@ public class UserSpecialtyController {
         SpecialtyEntity specialty = specialtyRepository.findById(request.getSpecialtyId())
             .orElseThrow(() -> new IllegalArgumentException("Specialty not found: " + request.getSpecialtyId()));
 
-        if (userSpecialtyRepository.existsByUserIdAndSpecialtyId(request.getUserId(), request.getSpecialtyId())) {
+        if (userSpecialtyRepository.existsByUserIdAndSpecialtyIdAndLifecycleStatus(request.getUserId(), request.getSpecialtyId(), "ACTIVE")) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "User already assigned to this specialty");
         }
 

@@ -7,8 +7,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserSpecialtyRepository extends JpaRepository<UserSpecialtyEntity, UUID> {
-    Page<UserSpecialtyEntity> findByUserId(UUID userId, Pageable pageable);
-    Page<UserSpecialtyEntity> findBySpecialtyId(UUID specialtyId, Pageable pageable);
-    boolean existsByUserIdAndSpecialtyId(UUID userId, UUID specialtyId);
+    Page<UserSpecialtyEntity> findByUserIdAndLifecycleStatus(UUID userId, String lifecycleStatus, Pageable pageable);
+    Page<UserSpecialtyEntity> findBySpecialtyIdAndLifecycleStatus(UUID specialtyId, String lifecycleStatus, Pageable pageable);
+    Page<UserSpecialtyEntity> findAllByLifecycleStatus(String lifecycleStatus, Pageable pageable);
+    boolean existsByUserIdAndSpecialtyIdAndLifecycleStatus(UUID userId, UUID specialtyId, String lifecycleStatus);
     void deleteByUserIdAndSpecialtyId(UUID userId, UUID specialtyId);
 }
