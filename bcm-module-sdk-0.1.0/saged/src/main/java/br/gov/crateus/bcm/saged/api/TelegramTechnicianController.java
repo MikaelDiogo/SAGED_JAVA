@@ -59,7 +59,9 @@ public class TelegramTechnicianController {
         technician.setUpdatedBy(jwt.getSubject());
         technicianRepository.save(technician);
 
-        botService.notifyTechnicianLinked(telegramUserId);
+        try {
+            botService.notifyTechnicianLinked(telegramUserId);
+        } catch (Exception ignored) {}
 
         return ResponseEntity.noContent().build();
     }

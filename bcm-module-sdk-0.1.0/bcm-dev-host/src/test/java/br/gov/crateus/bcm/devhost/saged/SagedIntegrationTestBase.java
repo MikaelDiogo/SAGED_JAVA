@@ -25,6 +25,21 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 abstract class SagedIntegrationTestBase {
 
+    static {
+        try {
+            java.net.URL url = new java.net.URL("http://localhost:2375/v1.41/info");
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            int status = conn.getResponseCode();
+            java.io.InputStream is = status == 200 ? conn.getInputStream() : conn.getErrorStream();
+            byte[] buf = new byte[256];
+            int n = is.read(buf);
+            System.err.println("[TC-DEBUG] Java HTTP GET localhost:2375/v1.41/info → " + status + " body=" + new String(buf, 0, n));
+        } catch (Exception e) {
+            System.err.println("[TC-DEBUG] Java HTTP test FAILED: " + e);
+        }
+    }
+
     static final UUID TEST_DEPT_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     static final UUID TEST_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
@@ -58,6 +73,9 @@ abstract class SagedIntegrationTestBase {
                 saged.telegram_contacts,
                 saged.telegram_requester_authorizations,
                 saged.telegram_demand_requesters,
+                saged.telegram_technicians,
+                saged.telegram_sessions,
+                saged.telegram_link_codes,
                 saged.user_specialties,
                 saged.demand_views,
                 saged.system_notifications,
