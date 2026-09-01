@@ -1,0 +1,11 @@
+ALTER TABLE saged.system_notifications
+    ADD COLUMN IF NOT EXISTS org_id           UUID,
+    ADD COLUMN IF NOT EXISTS source           VARCHAR(64),
+    ADD COLUMN IF NOT EXISTS sensitivity      VARCHAR(32) NOT NULL DEFAULT 'INTERNAL',
+    ADD COLUMN IF NOT EXISTS lifecycle_status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE';
+
+ALTER TABLE saged.telegram_demand_requesters
+    ADD COLUMN IF NOT EXISTS org_id           UUID,
+    ADD COLUMN IF NOT EXISTS source           VARCHAR(64),
+    ADD COLUMN IF NOT EXISTS sensitivity      VARCHAR(32) NOT NULL DEFAULT 'INTERNAL',
+    ADD COLUMN IF NOT EXISTS lifecycle_status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE';
