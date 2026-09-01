@@ -259,9 +259,6 @@
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  const params = new URLSearchParams(window.location.search);
-  const CHAT_ID = params.get('chatId') || '';
-
   let code = '', iconCls = '', lbl = '';
 
   function pick(c, i, l) {
