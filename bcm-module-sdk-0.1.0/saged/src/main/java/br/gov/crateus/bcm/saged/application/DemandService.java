@@ -162,6 +162,11 @@ public class DemandService {
     }
 
     @Transactional(readOnly = true)
+    public List<DemandEntity> listByAssignee(UUID assigneeUserId) {
+        return demandRepository.findByAssigneeUserId(assigneeUserId);
+    }
+
+    @Transactional(readOnly = true)
     public Optional<DemandEntity> findByProtocol(String protocol) {
         return demandRepository.findByProtocol(protocol);
     }

@@ -7,12 +7,15 @@ import br.gov.crateus.bcm.saged.infrastructure.entity.SpecialtyEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramContactEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramRequesterEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramRequesterStatus;
+import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramTechnicianEntity;
 import br.gov.crateus.bcm.saged.infrastructure.repository.BotProcessedMessageRepository;
 import br.gov.crateus.bcm.saged.infrastructure.repository.SpecialtyRepository;
 import br.gov.crateus.bcm.saged.infrastructure.repository.TelegramContactRepository;
 import br.gov.crateus.bcm.saged.infrastructure.repository.TelegramRequesterRepository;
+import br.gov.crateus.bcm.saged.infrastructure.repository.TelegramTechnicianRepository;
 import br.gov.crateus.bcm.saged.infrastructure.telegram.TelegramSender;
 import br.gov.crateus.bcm.saged.infrastructure.telegram.dto.TelegramUpdate;
+import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -27,11 +30,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class TelegramBotService {
 
     private record TelegramSession(String state, String specialtyCode, String specialtyName, String title) {}
+    private record LinkCodeEntry(String telegramUserId, OffsetDateTime expiresAt) {}
 
     private final Map<String, TelegramSession> sessions = new ConcurrentHashMap<>();
+    private final Map<String, LinkCodeEntry> linkCodes = new ConcurrentHashMap<>();
+    private final SecureRandom secureRandom = new SecureRandom();
 
     private final DemandService demandService;
     private final TelegramRequesterRepository requesterRepository;
+    private final TelegramTechnicianRepository technicianRepository;
     private final TelegramContactRepository contactRepository;
     private final BotProcessedMessageRepository processedRepository;
     private final SpecialtyRepository specialtyRepository;
@@ -39,16 +46,39 @@ public class TelegramBotService {
 
     public TelegramBotService(DemandService demandService,
                                TelegramRequesterRepository requesterRepository,
+                               TelegramTechnicianRepository technicianRepository,
                                TelegramContactRepository contactRepository,
                                BotProcessedMessageRepository processedRepository,
                                SpecialtyRepository specialtyRepository,
                                TelegramSender sender) {
         this.demandService = demandService;
         this.requesterRepository = requesterRepository;
+        this.technicianRepository = technicianRepository;
         this.contactRepository = contactRepository;
         this.processedRepository = processedRepository;
         this.specialtyRepository = specialtyRepository;
         this.sender = sender;
+    }
+
+    public String generateLinkCode(String telegramUserId) {
+        String code = String.format("%06d", secureRandom.nextInt(1_000_000));
+        linkCodes.put(code, new LinkCodeEntry(telegramUserId, OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(10)));
+        return code;
+    }
+
+    public Optional<String> consumeLinkCode(String code) {
+        LinkCodeEntry entry = linkCodes.remove(code);
+        if (entry == null || entry.expiresAt().isBefore(OffsetDateTime.now(ZoneOffset.UTC))) {
+            return Optional.empty();
+        }
+        return Optional.of(entry.telegramUserId());
+    }
+
+    public void notifyTechnicianLinked(String telegramUserId) {
+        try {
+            long chatId = Long.parseLong(telegramUserId);
+            sender.sendMessage(chatId, "Vinculo confirmado\\! Agora voce pode acessar a *Area do Tecnico* pelo menu\\.");
+        } catch (NumberFormatException ignored) {}
     }
 
     public void handleUpdate(TelegramUpdate update) {
@@ -249,6 +279,9 @@ public class TelegramBotService {
             handleListDemands(chatId, requester);
         } else if (trimmed.startsWith("/status ")) {
             handleStatus(chatId, trimmed.substring("/status ".length()).trim(), requester);
+        } else if (trimmed.equalsIgnoreCase("/vincular")) {
+            String code = generateLinkCode(telegramUserId);
+            sender.sendLinkCodeMessage(chatId, code);
         } else {
             sender.sendApprovedMenu(chatId);
         }

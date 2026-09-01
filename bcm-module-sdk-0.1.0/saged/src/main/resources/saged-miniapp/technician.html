@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <title>SAGED &ndash; Area do Tecnico</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #f1f3f5;
+      color: #212529;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .header {
+      background: #1a3a5c;
+      padding: 14px 20px 12px;
+      display: flex; align-items: center; gap: 12px;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .header-logo {
+      width: 38px; height: 38px;
+      background: rgba(255,255,255,0.15); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .header-text h1 { color: #fff; font-size: 15px; font-weight: 700; }
+    .header-text p  { color: rgba(255,255,255,0.6); font-size: 11px; margin-top: 2px; }
+
+    .page { display: none; padding: 20px 16px 32px; }
+    .page.active { display: block; }
+
+    /* Loading */
+    .loading-wrap {
+      min-height: 70vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center; gap: 16px;
+    }
+    .spinner {
+      width: 44px; height: 44px; border: 4px solid #dee2e6;
+      border-top-color: #1a3a5c; border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-wrap p { font-size: 14px; color: #6c757d; }
+
+    /* Error */
+    .error-wrap {
+      min-height: 70vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center; padding: 24px; gap: 12px;
+    }
+    .error-wrap i { font-size: 52px; color: #c92a2a; }
+    .error-wrap h2 { font-size: 18px; font-weight: 700; color: #1a1a2e; }
+    .error-wrap p  { font-size: 13px; color: #6c757d; line-height: 1.5; }
+
+    /* Lista */
+    .section-tag   { font-size: 10px; font-weight: 700; color: #2266a8; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 6px; }
+    .section-title { font-size: 20px; font-weight: 800; color: #1a1a2e; margin-bottom: 16px; }
+
+    .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .chip {
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      border: 1.5px solid #dee2e6; background: #fff; color: #495057; cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .chip.active { background: #1a3a5c; border-color: #1a3a5c; color: #fff; }
+
+    .demand-list { display: flex; flex-direction: column; gap: 10px; }
+    .demand-card {
+      background: #fff; border-radius: 14px; padding: 14px 16px;
+      border: 1.5px solid #e9ecef; cursor: pointer;
+      transition: box-shadow .15s, border-color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .demand-card:active { opacity: .85; }
+    .demand-card:hover  { border-color: #1a3a5c; box-shadow: 0 4px 16px rgba(26,58,92,.1); }
+    .demand-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .protocol-tag {
+      font-size: 11px; font-family: monospace; font-weight: 700;
+      color: #1a3a5c; background: #e8f0fa; padding: 2px 8px; border-radius: 6px;
+    }
+    .demand-title { font-size: 14px; font-weight: 600; color: #212529; margin-bottom: 4px; line-height: 1.4; }
+    .demand-meta  { font-size: 12px; color: #868e96; }
+
+    .status-badge {
+      font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; white-space: nowrap;
+    }
+    .badge-TODO        { background: #e7f5ff; color: #1971c2; }
+    .badge-IN_PROGRESS { background: #fff3bf; color: #e67700; }
+    .badge-DONE        { background: #ebfbee; color: #2f9e44; }
+    .badge-INTERRUPTED { background: #fff5f5; color: #c92a2a; }
+
+    .empty-state {
+      text-align: center; padding: 48px 16px; color: #868e96;
+    }
+    .empty-state i { font-size: 48px; margin-bottom: 12px; display: block; }
+    .empty-state p { font-size: 14px; }
+
+    /* Detalhe */
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 600; color: #1a3a5c;
+      background: none; border: none; cursor: pointer; padding: 0;
+      margin-bottom: 16px; -webkit-tap-highlight-color: transparent;
+    }
+    .back-btn i { font-size: 16px; }
+
+    .detail-protocol {
+      font-size: 18px; font-weight: 700; font-family: monospace;
+      color: #1a3a5c; background: #e8f0fa;
+      padding: 10px 16px; border-radius: 10px;
+      margin-bottom: 16px; letter-spacing: 1px;
+    }
+    .detail-card {
+      background: #fff; border-radius: 14px; padding: 16px;
+      border: 1.5px solid #e9ecef; margin-bottom: 12px;
+    }
+    .detail-label { font-size: 11px; font-weight: 700; color: #868e96; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 4px; }
+    .detail-value { font-size: 14px; color: #212529; line-height: 1.5; }
+
+    .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+    .btn {
+      width: 100%; padding: 13px; border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 600; font-family: inherit;
+      cursor: pointer; transition: opacity .15s; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn:active   { opacity: .85; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary  { background: #1a3a5c; color: #fff; }
+    .btn-success  { background: #2f9e44; color: #fff; }
+    .btn-danger   { background: #c92a2a; color: #fff; }
+    .btn-warning  { background: #e67700; color: #fff; }
+
+    /* Confirmacao status */
+    .confirm-header { margin-bottom: 20px; }
+    .confirm-header h2 { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+    .confirm-header p  { font-size: 13px; color: #6c757d; }
+
+    label { display: block; font-size: 12px; font-weight: 600; color: #495057; margin-bottom: 6px; }
+    .field { margin-bottom: 16px; }
+    textarea {
+      width: 100%; padding: 12px 14px;
+      border: 1.5px solid #dee2e6; border-radius: 10px;
+      font-size: 14px; font-family: inherit; color: #212529;
+      background: #fff; outline: none; transition: border-color .2s; resize: none;
+    }
+    textarea:focus { border-color: #1a3a5c; }
+    .optional-tag { font-size: 10px; color: #adb5bd; font-weight: 500; margin-left: 4px; }
+
+    .error-box {
+      background: #fff5f5; border: 1.5px solid #ffc9c9;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 13px; color: #c92a2a; margin-bottom: 14px; display: none;
+    }
+    .error-box.show { display: block; }
+
+    /* Sucesso inline */
+    .success-toast {
+      background: #ebfbee; border: 1.5px solid #8ce99a; border-radius: 10px;
+      padding: 12px 14px; font-size: 13px; color: #2f9e44;
+      margin-bottom: 16px; display: none; align-items: center; gap: 8px;
+    }
+    .success-toast.show { display: flex; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <div class="header-logo"><i class="ti ti-tools" style="font-size:20px;color:#fff;"></i></div>
+  <div class="header-text">
+    <h1>Area do Tecnico</h1>
+    <p>SAGED &ndash; Suporte de TI</p>
+  </div>
+</div>
+
+<!-- Pagina 0: Loading -->
+<div class="page active" id="p0">
+  <div class="loading-wrap">
+    <div class="spinner"></div>
+    <p>Carregando demandas...</p>
+  </div>
+</div>
+
+<!-- Pagina E: Erro / nao vinculado -->
+<div class="page" id="pE">
+  <div class="error-wrap">
+    <i class="ti ti-link-off"></i>
+    <h2 id="errTitle">Acesso nao autorizado</h2>
+    <p id="errMsg">Seu Telegram nao esta vinculado a um tecnico SAGED.<br>Envie <strong>/vincular</strong> no bot para gerar o codigo de vinculo.</p>
+  </div>
+</div>
+
+<!-- Pagina 1: Lista de demandas -->
+<div class="page" id="p1">
+  <div class="section-tag">Minhas Demandas</div>
+  <div class="section-title" id="p1Title">Atribuidas a mim</div>
+
+  <div class="filter-bar">
+    <div class="chip active" data-filter="ALL" onclick="applyFilter(this)">Todas</div>
+    <div class="chip" data-filter="TODO" onclick="applyFilter(this)">A Fazer</div>
+    <div class="chip" data-filter="IN_PROGRESS" onclick="applyFilter(this)">Em Andamento</div>
+    <div class="chip" data-filter="DONE" onclick="applyFilter(this)">Concluidas</div>
+    <div class="chip" data-filter="INTERRUPTED" onclick="applyFilter(this)">Interrompidas</div>
+  </div>
+
+  <div class="demand-list" id="demandList"></div>
+</div>
+
+<!-- Pagina 2: Detalhe -->
+<div class="page" id="p2">
+  <button class="back-btn" onclick="show('p1')"><i class="ti ti-arrow-left"></i> Voltar</button>
+
+  <div class="success-toast" id="successToast"><i class="ti ti-circle-check"></i> <span id="successMsg">Status atualizado!</span></div>
+
+  <div class="detail-protocol" id="detProtocol"></div>
+
+  <div class="detail-card">
+    <div class="detail-label">Titulo</div>
+    <div class="detail-value" id="detTitle"></div>
+  </div>
+  <div class="detail-card">
+    <div class="detail-label">Descricao</div>
+    <div class="detail-value" id="detDesc"></div>
+  </div>
+  <div class="detail-card" id="detAssetCard" style="display:none">
+    <div class="detail-label">Tombamento</div>
+    <div class="detail-value" id="detAsset"></div>
+  </div>
+  <div class="detail-card">
+    <div class="detail-label">Especialidade</div>
+    <div class="detail-value" id="detSpecialty"></div>
+  </div>
+  <div class="detail-card">
+    <div class="detail-label">Status</div>
+    <div class="detail-value"><span class="status-badge" id="detStatusBadge"></span></div>
+  </div>
+
+  <div class="actions" id="detActions"></div>
+</div>
+
+<!-- Pagina 3: Confirmacao de mudanca de status -->
+<div class="page" id="p3">
+  <button class="back-btn" onclick="show('p2')"><i class="ti ti-arrow-left"></i> Voltar</button>
+
+  <div class="confirm-header">
+    <h2 id="confirmTitle">Concluir chamado</h2>
+    <p id="confirmSub">Informe o relatorio tecnico antes de confirmar.</p>
+  </div>
+
+  <div class="error-box" id="confirmErr"></div>
+
+  <div class="field">
+    <label for="justificationIn" id="justLabel">Relatorio tecnico <span class="optional-tag" id="justOptional">opcional</span></label>
+    <textarea id="justificationIn" rows="5" placeholder="Descreva o que foi feito, pecas trocadas, configuracoes realizadas..."></textarea>
+  </div>
+
+  <button class="btn" id="confirmBtn" onclick="confirmStatusChange()">Confirmar</button>
+</div>
+
+<script>
+  const tg = window.Telegram?.WebApp;
+  if (tg) { tg.ready(); tg.expand(); }
+
+  let demands = [];
+  let currentDemand = null;
+  let pendingStatus = null;
+  let currentFilter = 'ALL';
+
+  const STATUS_LABEL = {
+    TODO: 'A Fazer', IN_PROGRESS: 'Em Andamento', DONE: 'Concluido', INTERRUPTED: 'Interrompido'
+  };
+
+  function show(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  async function loadDemands() {
+    try {
+      const res = await fetch('/api/v1/saged/webhooks/miniapp/tech/demands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData: tg?.initData || '' })
+      });
+      if (res.status === 403) {
+        const body = await res.json().catch(() => ({}));
+        document.getElementById('errTitle').textContent = 'Acesso nao autorizado';
+        document.getElementById('errMsg').innerHTML =
+          (body.message || 'Seu Telegram nao esta vinculado.') +
+          '<br><br>Envie <strong>/vincular</strong> no bot para gerar o codigo de vinculo.';
+        show('pE');
+        return;
+      }
+      if (!res.ok) throw new Error('Erro ao carregar demandas');
+      demands = await res.json();
+      renderList();
+      show('p1');
+    } catch (e) {
+      document.getElementById('errTitle').textContent = 'Erro de conexao';
+      document.getElementById('errMsg').textContent = e.message;
+      show('pE');
+    }
+  }
+
+  function applyFilter(el) {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    currentFilter = el.dataset.filter;
+    renderList();
+  }
+
+  function renderList() {
+    const filtered = currentFilter === 'ALL' ? demands : demands.filter(d => d.status === currentFilter);
+    const container = document.getElementById('demandList');
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="empty-state"><i class="ti ti-inbox"></i><p>Nenhuma demanda encontrada.</p></div>`;
+      return;
+    }
+    container.innerHTML = filtered.map(d => `
+      <div class="demand-card" onclick="openDetail('${d.id}')">
+        <div class="demand-card-top">
+          <span class="protocol-tag">${d.protocol}</span>
+          <span class="status-badge badge-${d.status}">${STATUS_LABEL[d.status] || d.status}</span>
+        </div>
+        <div class="demand-title">${escHtml(d.title)}</div>
+        <div class="demand-meta">${escHtml(d.specialtyName || d.specialtyCode)}</div>
+      </div>
+    `).join('');
+  }
+
+  function openDetail(id) {
+    currentDemand = demands.find(d => d.id === id);
+    if (!currentDemand) return;
+    document.getElementById('detProtocol').textContent = currentDemand.protocol;
+    document.getElementById('detTitle').textContent = currentDemand.title;
+    document.getElementById('detDesc').textContent = currentDemand.description || '(sem descricao)';
+    document.getElementById('detSpecialty').textContent = currentDemand.specialtyName || currentDemand.specialtyCode;
+    const badge = document.getElementById('detStatusBadge');
+    badge.textContent = STATUS_LABEL[currentDemand.status] || currentDemand.status;
+    badge.className = 'status-badge badge-' + currentDemand.status;
+    const assetCard = document.getElementById('detAssetCard');
+    if (currentDemand.assetTag) {
+      document.getElementById('detAsset').textContent = currentDemand.assetTag;
+      assetCard.style.display = 'block';
+    } else {
+      assetCard.style.display = 'none';
+    }
+    renderActions();
+    document.getElementById('successToast').classList.remove('show');
+    show('p2');
+  }
+
+  function renderActions() {
+    const container = document.getElementById('detActions');
+    const s = currentDemand.status;
+    let html = '';
+    if (s === 'TODO') {
+      html = `<button class="btn btn-warning" onclick="startStatusChange('IN_PROGRESS')">
+        <i class="ti ti-player-play"></i> Iniciar Atendimento
+      </button>`;
+    } else if (s === 'IN_PROGRESS') {
+      html = `
+        <button class="btn btn-success" onclick="startStatusChange('DONE')">
+          <i class="ti ti-circle-check"></i> Concluir
+        </button>
+        <button class="btn btn-danger" onclick="startStatusChange('INTERRUPTED')">
+          <i class="ti ti-ban"></i> Interromper
+        </button>`;
+    }
+    container.innerHTML = html;
+  }
+
+  function startStatusChange(newStatus) {
+    pendingStatus = newStatus;
+    const isDone = newStatus === 'DONE';
+    const isInterrupted = newStatus === 'INTERRUPTED';
+    document.getElementById('confirmTitle').textContent = isDone ? 'Concluir chamado' : newStatus === 'IN_PROGRESS' ? 'Iniciar atendimento' : 'Interromper chamado';
+    document.getElementById('confirmSub').textContent = isInterrupted
+      ? 'Informe o motivo da interrupcao (obrigatorio).'
+      : isDone ? 'Informe o relatorio tecnico (opcional).' : 'Confirme o inicio do atendimento.';
+    document.getElementById('justLabel').childNodes[0].textContent = isInterrupted ? 'Justificativa' : 'Relatorio tecnico';
+    document.getElementById('justOptional').style.display = isInterrupted ? 'none' : 'inline';
+    document.getElementById('justificationIn').value = '';
+    document.getElementById('confirmErr').classList.remove('show');
+    const confirmBtn = document.getElementById('confirmBtn');
+    confirmBtn.className = 'btn ' + (isInterrupted ? 'btn-danger' : isDone ? 'btn-success' : 'btn-warning');
+    confirmBtn.innerHTML = isInterrupted
+      ? '<i class="ti ti-ban"></i> Confirmar Interrupcao'
+      : isDone ? '<i class="ti ti-circle-check"></i> Confirmar Conclusao'
+               : '<i class="ti ti-player-play"></i> Iniciar';
+    show('p3');
+  }
+
+  async function confirmStatusChange() {
+    const justification = document.getElementById('justificationIn').value.trim();
+    const err = document.getElementById('confirmErr');
+    const btn = document.getElementById('confirmBtn');
+
+    if (pendingStatus === 'INTERRUPTED' && !justification) {
+      err.textContent = 'A justificativa e obrigatoria para interrupcao.';
+      err.classList.add('show');
+      return;
+    }
+
+    err.classList.remove('show');
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(`/api/v1/saged/webhooks/miniapp/tech/demands/${currentDemand.id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          initData: tg?.initData || '',
+          newStatus: pendingStatus,
+          justification: justification || null
+        })
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || res.statusText);
+      }
+      const updated = await res.json();
+      const idx = demands.findIndex(d => d.id === updated.id);
+      if (idx !== -1) demands[idx] = updated;
+      currentDemand = updated;
+
+      const STATUS_MSG = {
+        IN_PROGRESS: 'Atendimento iniciado!',
+        DONE: 'Chamado concluido com sucesso!',
+        INTERRUPTED: 'Chamado interrompido.'
+      };
+      document.getElementById('successMsg').textContent = STATUS_MSG[pendingStatus] || 'Status atualizado!';
+      document.getElementById('successToast').classList.add('show');
+
+      openDetail(updated.id);
+    } catch (e) {
+      err.textContent = 'Erro: ' + e.message;
+      err.classList.add('show');
+      btn.disabled = false;
+    }
+  }
+
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  loadDemands();
+</script>
+</body>
+</html>

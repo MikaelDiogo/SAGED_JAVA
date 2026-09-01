@@ -142,6 +142,31 @@ public class TelegramSender {
         ));
     }
 
+    public void sendLinkCodeMessage(long chatId, String code) {
+        post(Map.of(
+            "chat_id", chatId,
+            "text", "Seu codigo de vinculo de tecnico e:\n\n*`" + code + "`*\n\n" +
+                    "Acesse o painel SAGED e informe esse codigo na aba *Meu Telegram*\\. " +
+                    "Valido por *10 minutos*\\.",
+            "parse_mode", "MarkdownV2"
+        ));
+    }
+
+    public void sendTechnicianMenu(long chatId) {
+        if (!hasMiniApp()) return;
+        post(Map.of(
+            "chat_id", chatId,
+            "text", "Area do Tecnico disponivel\\:",
+            "parse_mode", "MarkdownV2",
+            "reply_markup", Map.of(
+                "inline_keyboard", List.of(
+                    List.of(Map.of("text", "Area do Tecnico", "web_app",
+                        Map.of("url", miniAppBaseUrl + "/telegram/tech")))
+                )
+            )
+        ));
+    }
+
     public void sendAskProtocol(long chatId) {
         post(Map.of(
             "chat_id", chatId,
