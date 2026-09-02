@@ -1,6 +1,7 @@
 package br.gov.crateus.bcm.saged.api.dto;
 
 import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramRequesterEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramRequesterStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -12,6 +13,7 @@ public class TelegramRequesterResponse {
     private String displayName;
     private UUID departmentId;
     private String status;
+    private boolean active;
     private OffsetDateTime createdAt;
     private String createdBy;
 
@@ -23,6 +25,7 @@ public class TelegramRequesterResponse {
         r.displayName = e.getDisplayName();
         r.departmentId = e.getDepartmentId();
         r.status = e.getStatus().name();
+        r.active = e.getStatus() == TelegramRequesterStatus.ACTIVE;
         r.createdAt = e.getCreatedAt();
         r.createdBy = e.getCreatedBy();
         return r;
@@ -34,6 +37,7 @@ public class TelegramRequesterResponse {
     public String getDisplayName() { return displayName; }
     public UUID getDepartmentId() { return departmentId; }
     public String getStatus() { return status; }
+    public boolean isActive() { return active; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public String getCreatedBy() { return createdBy; }
 }

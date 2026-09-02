@@ -3,7 +3,9 @@ package br.gov.crateus.bcm.devhost.saged;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import br.gov.crateus.bcm.saged.infrastructure.telegram.TelegramSender;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -11,6 +13,10 @@ import org.springframework.test.context.DynamicPropertySource;
 class TelegramWebhookSecurityTest extends SagedIntegrationTestBase {
 
     static final String TEST_SECRET = "test-webhook-secret-abc123";
+
+    // Prevent real outbound calls to the Telegram Bot API while processing updates.
+    @MockBean
+    TelegramSender telegramSender;
 
     @DynamicPropertySource
     static void configureWebhookSecret(DynamicPropertyRegistry registry) {

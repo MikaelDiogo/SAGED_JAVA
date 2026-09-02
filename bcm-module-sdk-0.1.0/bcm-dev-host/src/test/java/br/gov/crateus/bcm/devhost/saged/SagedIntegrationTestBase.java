@@ -16,38 +16,26 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Testcontainers
 abstract class SagedIntegrationTestBase {
-
-    static {
-        try {
-            java.net.URL url = new java.net.URL("http://localhost:2375/v1.41/info");
-            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            int status = conn.getResponseCode();
-            java.io.InputStream is = status == 200 ? conn.getInputStream() : conn.getErrorStream();
-            byte[] buf = new byte[256];
-            int n = is.read(buf);
-            System.err.println("[TC-DEBUG] Java HTTP GET localhost:2375/v1.41/info → " + status + " body=" + new String(buf, 0, n));
-        } catch (Exception e) {
-            System.err.println("[TC-DEBUG] Java HTTP test FAILED: " + e);
-        }
-    }
 
     static final UUID TEST_DEPT_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     static final UUID TEST_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+    // Singleton container: started once for the whole test JVM and reused across every
+    // test class. Reaped by Ryuk at JVM exit. Avoids the per-class start/stop churn that
+    // is flaky against Docker Desktop on Windows over TCP.
+    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
             .withDatabaseName("bcm_test")
             .withUsername("bcm")
             .withPassword("bcm");
+
+    static {
+        postgres.start();
+    }
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {

@@ -47,6 +47,7 @@ public class UserSpecialtyController {
     @GetMapping
     @PreAuthorize("hasAnyRole('SAGED_ADMIN_GERAL','SAGED_ADMIN_SETOR','SAGED_TECNICO_LIDER','SAGED_TECNICO')")
     @Operation(summary = "List user-specialty assignments — filter by userId or specialtyId")
+    @Transactional(readOnly = true)
     public Page<UserSpecialtyResponse> list(
             @RequestParam(required = false) UUID userId,
             @RequestParam(required = false) UUID specialtyId,

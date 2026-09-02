@@ -328,8 +328,8 @@ class DemandIntegrationTest extends SagedIntegrationTestBase {
                         .with(adminJwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "title", "Test demand",
-                                "description", "Test description",
+                                "title", "Test demand title",
+                                "description", "Test demand description with enough length",
                                 "specialtyCode", "HW",
                                 "departmentId", deptId
                         ))))
