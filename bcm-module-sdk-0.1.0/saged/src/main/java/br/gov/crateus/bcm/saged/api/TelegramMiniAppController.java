@@ -1,6 +1,7 @@
 package br.gov.crateus.bcm.saged.api;
 
 import br.gov.crateus.bcm.saged.application.DemandService;
+import br.gov.crateus.bcm.saged.application.TelegramBotService;
 import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramRequesterEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramRequesterStatus;
@@ -28,13 +29,16 @@ public class TelegramMiniAppController {
     private final TelegramRequesterRepository requesterRepository;
     private final DemandService demandService;
     private final TelegramInitDataValidator initDataValidator;
+    private final TelegramBotService botService;
 
     public TelegramMiniAppController(TelegramRequesterRepository requesterRepository,
                                       DemandService demandService,
-                                      TelegramInitDataValidator initDataValidator) {
+                                      TelegramInitDataValidator initDataValidator,
+                                      TelegramBotService botService) {
         this.requesterRepository = requesterRepository;
         this.demandService = demandService;
         this.initDataValidator = initDataValidator;
+        this.botService = botService;
     }
 
     @GetMapping(value = "/telegram/app", produces = MediaType.TEXT_HTML_VALUE)
@@ -83,6 +87,11 @@ public class TelegramMiniAppController {
             requester.getDepartmentId(),
             "telegram-app:" + telegramUserId
         );
+
+        // Confirma no chat com o protocolo; falha no envio não desfaz o chamado
+        try {
+            botService.notifyDemandCreated(requester, demand);
+        } catch (Exception ignored) {}
 
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(Map.of("protocol", demand.getProtocol()));

@@ -16,7 +16,8 @@ import {
 } from '@mantine/core';
 import { useMediaQuery, useWindowScroll } from '@mantine/hooks';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { IconLogout, IconUserCircle, IconRoute, IconBell, IconCheck } from '@tabler/icons-react';
+import { IconLogout, IconUserCircle, IconRoute, IconBell, IconCheck, IconBrandTelegram } from '@tabler/icons-react';
+import { LinkTelegramModal } from '../LinkTelegramModal';
 import { useMemo, useContext, useState, useEffect, useCallback } from 'react';
 import { api } from '../../services/api';
 import logo from '../../assets/logo.png';
@@ -85,6 +86,7 @@ export function Header({ opened, toggle }: HeaderProps) {
   interface Notification { id: string; message: string; type: string; read: boolean; demandProtocol?: string; createdAt: string; }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [linkTelegramOpen, setLinkTelegramOpen] = useState(false);
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const fetchNotifications = useCallback(async () => {
@@ -263,6 +265,12 @@ export function Header({ opened, toggle }: HeaderProps) {
         >
           Iniciar Tour
         </Menu.Item>
+        <Menu.Item
+          leftSection={<IconBrandTelegram size={14} />}
+          onClick={() => setLinkTelegramOpen(true)}
+        >
+          Vincular Telegram
+        </Menu.Item>
         <Menu.Divider />
         <Menu.Item
           color="red"
@@ -345,6 +353,7 @@ export function Header({ opened, toggle }: HeaderProps) {
         boxShadow: progress > 0.6 ? '0 2px 12px rgba(0, 0, 0, 0.12)' : 'none',
       }}
     >
+      <LinkTelegramModal opened={linkTelegramOpen} onClose={() => setLinkTelegramOpen(false)} />
       {/* Barra superior — encolhe no desktop; no mobile cresce e absorve a logo */}
       <Box
         bg="crateus-green.9"

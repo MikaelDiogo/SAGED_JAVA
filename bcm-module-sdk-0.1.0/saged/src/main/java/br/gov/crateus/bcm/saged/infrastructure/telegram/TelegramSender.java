@@ -1,16 +1,30 @@
 package br.gov.crateus.bcm.saged.infrastructure.telegram;
 
 import br.gov.crateus.bcm.saged.config.SagedTelegramProperties;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+/**
+ * Mensagens do bot. Toda a navegação é feita por botões (inline keyboard ou web_app);
+ * o bot não depende de comandos nem de texto digitado pelo usuário.
+ */
 @Component
 public class TelegramSender {
 
     private static final String BASE_URL = "https://api.telegram.org";
+
+    public static final String CB_MENU = "menu";
+    public static final String CB_SOBRE = "sobre_saged";
+    public static final String CB_VALIDAR = "validar_numero";
+    public static final String CB_SOU_TECNICO = "sou_tecnico";
+    public static final String CB_ABRIR = "abrir_chamado";
+    public static final String CB_MINHAS = "minhas_demandas";
+    public static final String CB_STATUS = "consultar_status";
+    public static final String CB_DEMANDA_PREFIX = "demanda_";
 
     private final RestClient restClient;
     private final String botToken;
@@ -26,31 +40,54 @@ public class TelegramSender {
         post(Map.of("chat_id", chatId, "text", text, "parse_mode", "MarkdownV2"));
     }
 
+    // ── Menus ─────────────────────────────────────────────────────────────────
+
     public void sendMainMenu(long chatId) {
         Map<String, Object> sobreBtn = hasMiniApp()
-            ? Map.of("text", "Sobre o SAGED", "web_app", Map.of("url", miniAppBaseUrl + "/telegram/info"))
-            : Map.of("text", "Sobre o SAGED", "callback_data", "sobre_saged");
-        post(Map.of(
-            "chat_id", chatId,
-            "text", "*Bem\\-vindo ao SAGED*\n\nSistema de Suporte de TI da Prefeitura de Crateús\\.\nSelecione uma opcao abaixo:",
-            "parse_mode", "MarkdownV2",
-            "reply_markup", Map.of(
-                "inline_keyboard", List.of(
-                    List.of(sobreBtn),
-                    List.of(Map.of("text", "Validar meu numero", "callback_data", "validar_numero"))
-                )
-            )
-        ));
+            ? webAppButton("Sobre o SAGED", "/telegram/app/info")
+            : callbackButton("Sobre o SAGED", CB_SOBRE);
+        send(chatId,
+            "*Bem\\-vindo ao SAGED*\n\nSistema de Suporte de TI da Prefeitura de Crateús\\.\nToque em uma opção abaixo:",
+            List.of(
+                List.of(sobreBtn),
+                List.of(callbackButton("Validar meu número", CB_VALIDAR)),
+                List.of(callbackButton("Sou técnico", CB_SOU_TECNICO))
+            ));
     }
+
+    public void sendApprovedMenu(long chatId) {
+        Map<String, Object> chamadoBtn = hasMiniApp()
+            ? webAppButton("Abrir Chamado", "/telegram/app")
+            : callbackButton("Abrir Chamado", CB_ABRIR);
+        send(chatId,
+            "*Acesso autorizado\\!*\nToque em uma opção:",
+            List.of(
+                List.of(chamadoBtn),
+                List.of(callbackButton("Minhas Demandas", CB_MINHAS)),
+                List.of(callbackButton("Consultar Status", CB_STATUS))
+            ));
+    }
+
+    public void sendTechnicianMenu(long chatId) {
+        if (!hasMiniApp()) {
+            sendMiniAppUnavailable(chatId);
+            return;
+        }
+        send(chatId,
+            "*Área do Técnico*\nToque no botão para ver e atualizar os chamados atribuídos a você\\.",
+            List.of(List.of(webAppButton("Área do Técnico", "/telegram/app/tech"))));
+    }
+
+    // ── Acesso do solicitante ─────────────────────────────────────────────────
 
     public void sendContactRequest(long chatId) {
         post(Map.of(
             "chat_id", chatId,
-            "text", "Toque no botao abaixo para compartilhar seu numero\\. Ele sera enviado ao sistema para verificacao\\.",
+            "text", "Toque no botão abaixo para compartilhar seu número\\. Ele será enviado ao sistema para verificação\\.",
             "parse_mode", "MarkdownV2",
             "reply_markup", Map.of(
                 "keyboard", List.of(
-                    List.of(Map.of("text", "Compartilhar meu numero", "request_contact", true))
+                    List.of(Map.of("text", "Compartilhar meu número", "request_contact", true))
                 ),
                 "resize_keyboard", true,
                 "one_time_keyboard", true
@@ -61,8 +98,8 @@ public class TelegramSender {
     public void sendNotRegisteredMessage(long chatId) {
         post(Map.of(
             "chat_id", chatId,
-            "text", "Seu numero nao esta cadastrado no SAGED\\.\n\n" +
-                    "Solicite ao *administrador do seu setor* que cadastre o seu numero para liberar o acesso\\.",
+            "text", "Seu número não está cadastrado no SAGED\\.\n\n" +
+                    "Peça ao *administrador do seu setor* para cadastrar o seu número e liberar o acesso\\.",
             "parse_mode", "MarkdownV2",
             "reply_markup", Map.of("remove_keyboard", true)
         ));
@@ -71,135 +108,112 @@ public class TelegramSender {
     public void sendPendingMessage(long chatId) {
         post(Map.of(
             "chat_id", chatId,
-            "text", "Seu numero esta cadastrado, porem o acesso ainda nao foi liberado\\. Aguarde o administrador ativar seu cadastro\\.",
+            "text", "Seu número está cadastrado, mas o acesso ainda não foi liberado\\. Aguarde o administrador ativar seu cadastro\\.",
             "parse_mode", "MarkdownV2",
             "reply_markup", Map.of("remove_keyboard", true)
         ));
     }
 
-    public void sendApprovedMenu(long chatId) {
-        Map<String, Object> chamadoBtn = hasMiniApp()
-            ? Map.of("text", "Abrir Chamado", "web_app", Map.of("url", miniAppBaseUrl + "/telegram/app"))
-            : Map.of("text", "Abrir Chamado", "callback_data", "abrir_chamado");
-        post(Map.of(
-            "chat_id", chatId,
-            "text", "Acesso autorizado\\! Selecione uma opcao:",
-            "parse_mode", "MarkdownV2",
-            "reply_markup", Map.of(
-                "inline_keyboard", List.of(
-                    List.of(chamadoBtn),
-                    List.of(Map.of("text", "Minhas Demandas", "callback_data", "minhas_demandas")),
-                    List.of(Map.of("text", "Consultar Status", "callback_data", "consultar_status"))
-                )
-            )
-        ));
-    }
-
-    public void sendSpecialtyMenu(long chatId, List<Map<String, String>> specialties) {
-        List<List<Map<String, Object>>> keyboard = specialties.stream()
-            .map(s -> List.of(Map.<String, Object>of(
-                "text", s.get("name"),
-                "callback_data", "specialty_" + s.get("code")
-            )))
-            .toList();
-        post(Map.of(
-            "chat_id", chatId,
-            "text", "Selecione o tipo de chamado:",
-            "parse_mode", "MarkdownV2",
-            "reply_markup", Map.of("inline_keyboard", keyboard)
-        ));
-    }
-
-    public void sendAskTitle(long chatId, String specialtyName) {
-        post(Map.of(
-            "chat_id", chatId,
-            "text", "Tipo selecionado: *" + escape(specialtyName) + "*\n\nDigite o *titulo* do chamado \\(minimo 12 caracteres\\):",
-            "parse_mode", "MarkdownV2"
-        ));
-    }
-
-    public void sendAskDescription(long chatId) {
-        post(Map.of(
-            "chat_id", chatId,
-            "text", "Digite a *descricao* do chamado \\(minimo 20 caracteres\\):\n_Ou envie_ `/pular` _para usar o titulo como descricao\\._",
-            "parse_mode", "MarkdownV2"
-        ));
-    }
-
     public void sendSobreMessage(long chatId) {
-        post(Map.of(
-            "chat_id", chatId,
-            "text", "*SAGED \\- Sistema de Atendimento e Gestao de Demandas*\n\n" +
-                    "O SAGED e o sistema de suporte de TI da Prefeitura de Crateús\\. " +
-                    "Ele permite abrir chamados de suporte tecnico, acompanhar o status e receber atualizacoes diretamente pelo Telegram\\.\n\n" +
-                    "Para comecar, valide o seu numero de telefone cadastrado\\.",
-            "parse_mode", "MarkdownV2",
-            "reply_markup", Map.of(
-                "inline_keyboard", List.of(
-                    List.of(Map.of("text", "Validar meu numero", "callback_data", "validar_numero"))
-                )
-            )
+        send(chatId,
+            "*SAGED \\- Sistema de Atendimento e Gestão de Demandas*\n\n" +
+            "O SAGED é o sistema de suporte de TI da Prefeitura de Crateús\\. " +
+            "Com ele você abre chamados, acompanha o status e recebe as atualizações aqui no Telegram\\.\n\n" +
+            "Para começar, valide o seu número de telefone cadastrado\\.",
+            List.of(List.of(callbackButton("Validar meu número", CB_VALIDAR))));
+    }
+
+    // ── Chamados do solicitante ───────────────────────────────────────────────
+
+    /** Lista de chamados como botões; cada botão abre o detalhe do chamado. */
+    public void sendDemandPicker(long chatId, String text, List<Map<String, String>> demands) {
+        List<List<Map<String, Object>>> keyboard = new ArrayList<>();
+        for (Map<String, String> d : demands) {
+            keyboard.add(List.of(callbackButton(d.get("label"), CB_DEMANDA_PREFIX + d.get("id"))));
+        }
+        keyboard.add(List.of(callbackButton("« Voltar ao menu", CB_MENU)));
+        send(chatId, text, keyboard);
+    }
+
+    public void sendDemandDetail(long chatId, String text) {
+        send(chatId, text, List.of(
+            List.of(callbackButton("« Meus chamados", CB_MINHAS)),
+            List.of(callbackButton("Menu", CB_MENU))
         ));
     }
 
-    public void sendLinkCodeMessage(long chatId, String code) {
-        post(Map.of(
-            "chat_id", chatId,
-            "text", "Seu codigo de vinculo de tecnico e:\n\n*`" + code + "`*\n\n" +
-                    "Acesse o painel SAGED e informe esse codigo na aba *Meu Telegram*\\. " +
-                    "Valido por *10 minutos*\\.",
-            "parse_mode", "MarkdownV2"
-        ));
+    public void sendNoDemands(long chatId) {
+        send(chatId, "Você ainda não tem chamados registrados\\.",
+            List.of(List.of(callbackButton("« Voltar ao menu", CB_MENU))));
     }
 
-    public void sendTechnicianMenu(long chatId) {
-        if (!hasMiniApp()) return;
-        post(Map.of(
-            "chat_id", chatId,
-            "text", "Area do Tecnico disponivel\\:",
-            "parse_mode", "MarkdownV2",
-            "reply_markup", Map.of(
-                "inline_keyboard", List.of(
-                    List.of(Map.of("text", "Area do Tecnico", "web_app",
-                        Map.of("url", miniAppBaseUrl + "/telegram/tech")))
-                )
-            )
-        ));
+    public void sendDemandCreated(long chatId, String protocol, String title) {
+        send(chatId,
+            "*Chamado aberto com sucesso\\!*\n" +
+            "Protocolo: `" + escape(protocol) + "`\n" +
+            "Título: " + escape(title) + "\n" +
+            "Status: *A Fazer*\n\nVocê receberá aqui as atualizações do atendimento\\.",
+            List.of(
+                List.of(callbackButton("Minhas Demandas", CB_MINHAS)),
+                List.of(callbackButton("Menu", CB_MENU))
+            ));
     }
 
-    public void sendAskProtocol(long chatId) {
-        post(Map.of(
-            "chat_id", chatId,
-            "text", "Digite o *protocolo* do chamado que deseja consultar:\n_Exemplo: 2026\\-MANUT\\-00001_",
-            "parse_mode", "MarkdownV2"
-        ));
+    public void sendMiniAppUnavailable(long chatId) {
+        send(chatId,
+            "Esta opção está indisponível no momento\\. Procure a equipe de TI\\.",
+            List.of(List.of(callbackButton("« Voltar ao menu", CB_MENU))));
     }
+
+    // ── Técnico ───────────────────────────────────────────────────────────────
+
+    public void sendTechnicianLinkCode(long chatId, String code) {
+        send(chatId,
+            "*Vincular conta de técnico*\n\nSeu código é:\n\n*`" + code + "`*\n\n" +
+            "No SAGED pelo navegador, clique em *Minha Conta → Vincular Telegram* e informe este código\\. " +
+            "Ele vale por *10 minutos*\\.",
+            List.of(List.of(callbackButton("Gerar novo código", CB_SOU_TECNICO))));
+    }
+
+    public void sendTechnicianLinked(long chatId) {
+        if (!hasMiniApp()) {
+            sendMessage(chatId, "*Vínculo confirmado\\!*");
+            return;
+        }
+        send(chatId,
+            "*Vínculo confirmado\\!*\nAgora você acompanha seus chamados pela Área do Técnico\\.",
+            List.of(List.of(webAppButton("Área do Técnico", "/telegram/app/tech"))));
+    }
+
+    // ── Notificações ──────────────────────────────────────────────────────────
 
     public void sendDemandAssignedNotification(long chatId, String protocol, String technicianName) {
         post(Map.of(
             "chat_id", chatId,
-            "text", "Seu chamado *" + escape(protocol) + "* foi assumido pelo tecnico *" + escape(technicianName) +
-                    "* e esta atualmente *Em Andamento*\\.\n\nPosteriormente voce recebera mais informacoes\\.",
+            "text", "Seu chamado *" + escape(protocol) + "* foi assumido pelo técnico *" + escape(technicianName) +
+                    "* e está *Em Andamento*\\.\n\nVocê receberá novas informações aqui\\.",
             "parse_mode", "MarkdownV2"
         ));
     }
 
     public void sendDemandConcludedNotification(long chatId, String protocol, String technicianName, String justification) {
-        String msg = "Seu chamado *" + escape(protocol) + "* foi *Concluido* pelo tecnico *" + escape(technicianName) + "*\\.";
+        String msg = "Seu chamado *" + escape(protocol) + "* foi *Concluído* pelo técnico *" + escape(technicianName) + "*\\.";
         if (justification != null && !justification.isBlank()) {
-            msg += "\n\n*Relatorio tecnico:*\n" + escape(justification);
+            msg += "\n\n*Relatório técnico:*\n" + escape(justification);
         }
         post(Map.of("chat_id", chatId, "text", msg, "parse_mode", "MarkdownV2"));
     }
 
     public void sendDemandInterruptedNotification(long chatId, String protocol, String technicianName, String justification) {
-        String msg = "Seu chamado *" + escape(protocol) + "* foi *Interrompido* pelo tecnico *" + escape(technicianName) + "*\\.";
+        String msg = "Seu chamado *" + escape(protocol) + "* foi *Interrompido* pelo técnico *" + escape(technicianName) + "*\\.";
         if (justification != null && !justification.isBlank()) {
             msg += "\n\n*Justificativa:*\n" + escape(justification);
         }
-        msg += "\n\nPara mais informacoes entre em contato com a TI\\.";
+        msg += "\n\nPara mais informações, fale com a equipe de TI\\.";
         post(Map.of("chat_id", chatId, "text", msg, "parse_mode", "MarkdownV2"));
     }
+
+    // ── Infra ─────────────────────────────────────────────────────────────────
 
     public void answerCallbackQuery(String callbackQueryId) {
         restClient.post()
@@ -222,6 +236,23 @@ public class TelegramSender {
             .body(body)
             .retrieve()
             .toBodilessEntity();
+    }
+
+    private void send(long chatId, String text, List<List<Map<String, Object>>> keyboard) {
+        post(Map.of(
+            "chat_id", chatId,
+            "text", text,
+            "parse_mode", "MarkdownV2",
+            "reply_markup", Map.of("inline_keyboard", keyboard)
+        ));
+    }
+
+    private static Map<String, Object> callbackButton(String text, String data) {
+        return Map.of("text", text, "callback_data", data);
+    }
+
+    private Map<String, Object> webAppButton(String text, String path) {
+        return Map.of("text", text, "web_app", Map.of("url", miniAppBaseUrl + path));
     }
 
     private void post(Object body) {

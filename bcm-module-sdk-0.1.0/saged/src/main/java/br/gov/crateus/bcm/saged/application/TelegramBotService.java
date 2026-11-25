@@ -3,19 +3,15 @@ package br.gov.crateus.bcm.saged.application;
 import br.gov.crateus.bcm.saged.domain.DemandStatus;
 import br.gov.crateus.bcm.saged.infrastructure.entity.BotProcessedMessageEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.DemandEntity;
-import br.gov.crateus.bcm.saged.infrastructure.entity.SpecialtyEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramContactEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramLinkCodeEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramRequesterEntity;
 import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramRequesterStatus;
-import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramSessionEntity;
-import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramTechnicianEntity;
+import br.gov.crateus.bcm.saged.infrastructure.entity.TelegramTechnicianStatus;
 import br.gov.crateus.bcm.saged.infrastructure.repository.BotProcessedMessageRepository;
-import br.gov.crateus.bcm.saged.infrastructure.repository.SpecialtyRepository;
 import br.gov.crateus.bcm.saged.infrastructure.repository.TelegramContactRepository;
 import br.gov.crateus.bcm.saged.infrastructure.repository.TelegramLinkCodeRepository;
 import br.gov.crateus.bcm.saged.infrastructure.repository.TelegramRequesterRepository;
-import br.gov.crateus.bcm.saged.infrastructure.repository.TelegramSessionRepository;
 import br.gov.crateus.bcm.saged.infrastructure.repository.TelegramTechnicianRepository;
 import br.gov.crateus.bcm.saged.infrastructure.telegram.TelegramSender;
 import br.gov.crateus.bcm.saged.infrastructure.telegram.dto.TelegramUpdate;
@@ -25,15 +21,21 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Bot do SAGED. Toda a interação é por botões: menus inline, botão de compartilhar contato
+ * e botões web_app que abrem os mini-apps. Qualquer texto digitado apenas reabre o menu.
+ */
 @Service
 @Transactional
 public class TelegramBotService {
 
-    private static final int SESSION_TTL_MINUTES = 30;
     private static final int LINK_CODE_TTL_MINUTES = 10;
+    private static final int MAX_DEMAND_BUTTONS = 10;
+    private static final int BUTTON_TITLE_MAX = 40;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -42,8 +44,6 @@ public class TelegramBotService {
     private final TelegramTechnicianRepository technicianRepository;
     private final TelegramContactRepository contactRepository;
     private final BotProcessedMessageRepository processedRepository;
-    private final SpecialtyRepository specialtyRepository;
-    private final TelegramSessionRepository sessionRepository;
     private final TelegramLinkCodeRepository linkCodeRepository;
     private final TelegramSender sender;
 
@@ -52,8 +52,6 @@ public class TelegramBotService {
                                TelegramTechnicianRepository technicianRepository,
                                TelegramContactRepository contactRepository,
                                BotProcessedMessageRepository processedRepository,
-                               SpecialtyRepository specialtyRepository,
-                               TelegramSessionRepository sessionRepository,
                                TelegramLinkCodeRepository linkCodeRepository,
                                TelegramSender sender) {
         this.demandService = demandService;
@@ -61,33 +59,8 @@ public class TelegramBotService {
         this.technicianRepository = technicianRepository;
         this.contactRepository = contactRepository;
         this.processedRepository = processedRepository;
-        this.specialtyRepository = specialtyRepository;
-        this.sessionRepository = sessionRepository;
         this.linkCodeRepository = linkCodeRepository;
         this.sender = sender;
-    }
-
-    // ── Session helpers ───────────────────────────────────────────────────────
-
-    private TelegramSessionEntity getSession(String telegramUserId) {
-        return sessionRepository.findById(telegramUserId)
-            .filter(s -> s.getExpiresAt().isAfter(OffsetDateTime.now(ZoneOffset.UTC)))
-            .orElse(null);
-    }
-
-    private void putSession(String telegramUserId, String state, String specialtyCode, String specialtyName, String title) {
-        TelegramSessionEntity s = sessionRepository.findById(telegramUserId).orElseGet(TelegramSessionEntity::new);
-        s.setTelegramUserId(telegramUserId);
-        s.setState(state);
-        s.setSpecialtyCode(specialtyCode);
-        s.setSpecialtyName(specialtyName);
-        s.setTitle(title);
-        s.setExpiresAt(OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(SESSION_TTL_MINUTES));
-        sessionRepository.save(s);
-    }
-
-    private void removeSession(String telegramUserId) {
-        sessionRepository.deleteById(telegramUserId);
     }
 
     // ── Link code helpers ─────────────────────────────────────────────────────
@@ -113,8 +86,7 @@ public class TelegramBotService {
 
     public void notifyTechnicianLinked(String telegramUserId) {
         try {
-            long chatId = Long.parseLong(telegramUserId);
-            sender.sendMessage(chatId, "Vinculo confirmado\\! Agora voce pode acessar a *Area do Tecnico* pelo menu\\.");
+            sender.sendTechnicianLinked(Long.parseLong(telegramUserId));
         } catch (NumberFormatException ignored) {}
     }
 
@@ -137,41 +109,37 @@ public class TelegramBotService {
         }
     }
 
-    // ── Callback (inline keyboard) ─────────────────────────────────────────────
+    // ── Botões (callback) ─────────────────────────────────────────────────────
 
     private void handleCallbackQuery(TelegramUpdate.CallbackQuery callback) {
         sender.answerCallbackQuery(callback.getId());
         long chatId = callback.getMessage().getChat().getId();
         String telegramUserId = String.valueOf(callback.getFrom().getId());
-        String data = callback.getData();
+        String data = callback.getData() == null ? "" : callback.getData();
 
-        if ("sobre_saged".equals(data)) {
-            sender.sendSobreMessage(chatId);
-            return;
-        }
-        if ("validar_numero".equals(data)) {
-            sender.sendContactRequest(chatId);
-            return;
+        switch (data) {
+            case TelegramSender.CB_SOBRE -> { sender.sendSobreMessage(chatId); return; }
+            case TelegramSender.CB_VALIDAR -> { sender.sendContactRequest(chatId); return; }
+            case TelegramSender.CB_SOU_TECNICO -> { handleTechnician(chatId, telegramUserId); return; }
+            case TelegramSender.CB_MENU -> { sendMenuFor(chatId, telegramUserId); return; }
+            default -> { }
         }
 
         Optional<TelegramRequesterEntity> requesterOpt = requesterRepository.findByTelegramChatId(telegramUserId);
         if (requesterOpt.isEmpty() || requesterOpt.get().getStatus() != TelegramRequesterStatus.ACTIVE) {
-            sender.sendMainMenu(chatId);
+            sendMenuFor(chatId, telegramUserId);
             return;
         }
         TelegramRequesterEntity requester = requesterOpt.get();
 
         switch (data) {
-            case "abrir_chamado" -> handleStartDemand(chatId, telegramUserId);
-            case "minhas_demandas" -> handleListDemands(chatId, requester);
-            case "consultar_status" -> {
-                putSession(telegramUserId, "WAITING_PROTOCOL", null, null, null);
-                sender.sendAskProtocol(chatId);
-            }
+            // Só chega aqui quando o mini-app não está configurado (senão o botão é web_app)
+            case TelegramSender.CB_ABRIR -> sender.sendMiniAppUnavailable(chatId);
+            case TelegramSender.CB_MINHAS -> handleListDemands(chatId, requester);
+            case TelegramSender.CB_STATUS -> handlePickOpenDemand(chatId, requester);
             default -> {
-                if (data.startsWith("specialty_")) {
-                    String code = data.substring("specialty_".length());
-                    handleSpecialtySelected(chatId, telegramUserId, code);
+                if (data.startsWith(TelegramSender.CB_DEMANDA_PREFIX)) {
+                    handleDemandDetail(chatId, requester, data.substring(TelegramSender.CB_DEMANDA_PREFIX.length()));
                 } else {
                     sender.sendApprovedMenu(chatId);
                 }
@@ -179,7 +147,7 @@ public class TelegramBotService {
         }
     }
 
-    // ── Message ───────────────────────────────────────────────────────────────
+    // ── Mensagens recebidas ───────────────────────────────────────────────────
 
     private void handleMessage(TelegramUpdate.Message message) {
         if (message.getFrom() == null) return;
@@ -189,31 +157,31 @@ public class TelegramBotService {
         String telegramUserId = String.valueOf(message.getFrom().getId());
 
         if (message.getContact() != null) {
-            handleContactShared(chatId, telegramUserId, message.getContact(), message.getFrom());
+            handleContactShared(chatId, telegramUserId, message.getContact());
             return;
         }
 
-        Optional<TelegramRequesterEntity> requesterOpt = requesterRepository.findByTelegramChatId(telegramUserId);
-
-        if (requesterOpt.isEmpty()) {
-            sender.sendMainMenu(chatId);
-            return;
-        }
-
-        TelegramRequesterEntity requester = requesterOpt.get();
-
-        switch (requester.getStatus()) {
-            case PENDING -> sender.sendPendingMessage(chatId);
-            case INACTIVE -> sender.sendMainMenu(chatId);
-            case ACTIVE -> handleActiveUserMessage(chatId, telegramUserId, message.getText(), requester);
-        }
+        // Nenhum texto é interpretado: qualquer mensagem (inclusive o "Iniciar") reabre o menu certo
+        sendMenuFor(chatId, telegramUserId);
     }
 
-    // ── New auth flow: contact shared ─────────────────────────────────────────
+    private void sendMenuFor(long chatId, String telegramUserId) {
+        Optional<TelegramRequesterEntity> requesterOpt = requesterRepository.findByTelegramChatId(telegramUserId);
+        if (requesterOpt.isPresent()) {
+            switch (requesterOpt.get().getStatus()) {
+                case ACTIVE -> { sender.sendApprovedMenu(chatId); return; }
+                case PENDING -> { sender.sendPendingMessage(chatId); return; }
+                case INACTIVE -> { }
+            }
+        }
+        if (isActiveTechnician(telegramUserId)) {
+            sender.sendTechnicianMenu(chatId);
+            return;
+        }
+        sender.sendMainMenu(chatId);
+    }
 
-    private void handleContactShared(long chatId, String telegramUserId,
-                                      TelegramUpdate.Contact contact,
-                                      TelegramUpdate.From from) {
+    private void handleContactShared(long chatId, String telegramUserId, TelegramUpdate.Contact contact) {
         String phone = normalizePhone(contact.getPhoneNumber());
 
         Optional<TelegramRequesterEntity> byPhone = requesterRepository.findByPhoneNumber(phone);
@@ -240,146 +208,87 @@ public class TelegramBotService {
         sender.sendNotRegisteredMessage(chatId);
     }
 
-    // ── Conversation flow for opening demand ──────────────────────────────────
+    // ── Técnico ───────────────────────────────────────────────────────────────
 
-    private void handleStartDemand(long chatId, String telegramUserId) {
-        List<SpecialtyEntity> specialties = specialtyRepository.findAll();
-        if (specialties.isEmpty()) {
-            sender.sendMessage(chatId, "Nenhuma especialidade disponivel no momento\\.");
+    private void handleTechnician(long chatId, String telegramUserId) {
+        if (isActiveTechnician(telegramUserId)) {
+            sender.sendTechnicianMenu(chatId);
             return;
         }
-        List<Map<String, String>> list = specialties.stream()
-            .map(s -> Map.of("code", s.getCode(), "name", s.getName()))
-            .toList();
-        sender.sendSpecialtyMenu(chatId, list);
+        sender.sendTechnicianLinkCode(chatId, generateLinkCode(telegramUserId));
     }
 
-    private void handleSpecialtySelected(long chatId, String telegramUserId, String code) {
-        SpecialtyEntity specialty = specialtyRepository.findWithLockByCode(code).orElse(null);
-        if (specialty == null) {
-            sender.sendMessage(chatId, "Especialidade invalida\\.");
-            return;
-        }
-        putSession(telegramUserId, "WAITING_TITLE", code, specialty.getName(), null);
-        sender.sendAskTitle(chatId, specialty.getName());
+    private boolean isActiveTechnician(String telegramUserId) {
+        return technicianRepository.findByTelegramUserId(telegramUserId)
+            .filter(t -> t.getStatus() == TelegramTechnicianStatus.ACTIVE)
+            .isPresent();
     }
 
-    // ── Active user text messages ─────────────────────────────────────────────
-
-    private void handleActiveUserMessage(long chatId, String telegramUserId, String text,
-                                          TelegramRequesterEntity requester) {
-        TelegramSessionEntity session = getSession(telegramUserId);
-
-        if (session != null) {
-            switch (session.getState()) {
-                case "WAITING_TITLE" -> {
-                    if (text == null || text.trim().length() < 12) {
-                        sender.sendMessage(chatId, "O titulo deve ter no minimo 12 caracteres\\. Tente novamente:");
-                        return;
-                    }
-                    putSession(telegramUserId, "WAITING_DESCRIPTION",
-                        session.getSpecialtyCode(), session.getSpecialtyName(), text.trim());
-                    sender.sendAskDescription(chatId);
-                    return;
-                }
-                case "WAITING_DESCRIPTION" -> {
-                    String description;
-                    if (text == null || "/pular".equalsIgnoreCase(text.trim())) {
-                        description = session.getTitle();
-                    } else if (text.trim().length() < 20) {
-                        sender.sendMessage(chatId, "A descricao deve ter no minimo 20 caracteres\\. Tente novamente ou envie `/pular`:");
-                        return;
-                    } else {
-                        description = text.trim();
-                    }
-                    removeSession(telegramUserId);
-                    createDemandFromSession(chatId, telegramUserId, requester, session, description);
-                    return;
-                }
-                case "WAITING_PROTOCOL" -> {
-                    removeSession(telegramUserId);
-                    handleStatus(chatId, text, requester);
-                    return;
-                }
-            }
-        }
-
-        if (text == null) {
-            sender.sendApprovedMenu(chatId);
-            return;
-        }
-
-        String trimmed = text.trim();
-        if (trimmed.equalsIgnoreCase("/menu") || trimmed.equalsIgnoreCase("/start")) {
-            sender.sendApprovedMenu(chatId);
-        } else if (trimmed.equalsIgnoreCase("/minhas")) {
-            handleListDemands(chatId, requester);
-        } else if (trimmed.startsWith("/status ")) {
-            handleStatus(chatId, trimmed.substring("/status ".length()).trim(), requester);
-        } else if (trimmed.equalsIgnoreCase("/vincular")) {
-            String code = generateLinkCode(telegramUserId);
-            sender.sendLinkCodeMessage(chatId, code);
-        } else {
-            sender.sendApprovedMenu(chatId);
-        }
-    }
-
-    private void createDemandFromSession(long chatId, String telegramUserId,
-                                          TelegramRequesterEntity requester,
-                                          TelegramSessionEntity session, String description) {
-        try {
-            DemandEntity demand = demandService.create(
-                session.getTitle(), description,
-                session.getSpecialtyCode(), null,
-                requester.getId(), requester.getDepartmentId(),
-                "telegram:" + telegramUserId
-            );
-            sender.sendMessage(chatId,
-                "Chamado aberto com sucesso\\!\nProtocolo: `" + TelegramSender.escape(demand.getProtocol()) + "`\n" +
-                "Tipo: " + TelegramSender.escape(session.getSpecialtyName()) + "\n" +
-                "Status: *A Fazer*\n\nAcompanhe o status pelo menu abaixo\\.");
-        } catch (IllegalArgumentException e) {
-            sender.sendMessage(chatId, "Erro ao abrir chamado: " + TelegramSender.escape(e.getMessage()));
-        }
-    }
+    // ── Chamados do solicitante ───────────────────────────────────────────────
 
     private void handleListDemands(long chatId, TelegramRequesterEntity requester) {
         List<DemandEntity> demands = demandService.listByRequester(requester.getId());
         if (demands.isEmpty()) {
-            sender.sendMessage(chatId, "Voce nao possui demandas registradas\\.");
+            sender.sendNoDemands(chatId);
             return;
         }
-        StringBuilder sb = new StringBuilder("*Suas demandas:*\n\n");
-        for (DemandEntity d : demands) {
-            sb.append("• `").append(TelegramSender.escape(d.getProtocol())).append("` — ")
-              .append(TelegramSender.escape(d.getTitle())).append(" \\[")
-              .append(translateStatus(d.getStatus())).append("\\]\n");
-        }
-        sender.sendMessage(chatId, sb.toString());
+        sender.sendDemandPicker(chatId,
+            "*Minhas demandas*\nToque em um chamado para ver os detalhes:",
+            toButtons(demands));
     }
 
-    private void handleStatus(long chatId, String protocol, TelegramRequesterEntity requester) {
-        if (protocol == null || protocol.isBlank()) {
-            sender.sendMessage(chatId, "Protocolo invalido\\.");
+    private void handlePickOpenDemand(long chatId, TelegramRequesterEntity requester) {
+        List<DemandEntity> open = demandService.listByRequester(requester.getId()).stream()
+            .filter(d -> d.getStatus() != DemandStatus.DONE)
+            .toList();
+        if (open.isEmpty()) {
+            sender.sendNoDemands(chatId);
             return;
         }
-        demandService.findByProtocol(protocol).ifPresentOrElse(
-            d -> {
-                if (!requester.getId().equals(d.getRequesterUserId())) {
-                    sender.sendMessage(chatId, "Protocolo nao encontrado: `" + TelegramSender.escape(protocol) + "`");
-                    return;
-                }
-                sender.sendMessage(chatId,
-                    "Protocolo: `" + TelegramSender.escape(d.getProtocol()) + "`\n" +
-                    "Titulo: " + TelegramSender.escape(d.getTitle()) + "\n" +
-                    "Status: *" + translateStatus(d.getStatus()) + "*\n" +
-                    (d.getAssigneeUserId() != null ? "Tecnico: atribuido" : "Tecnico: _nao atribuido_"));
-            },
-            () -> sender.sendMessage(chatId, "Protocolo nao encontrado: `" + TelegramSender.escape(protocol) + "`")
-        );
+        sender.sendDemandPicker(chatId,
+            "*Consultar status*\nEscolha o chamado:",
+            toButtons(open));
     }
 
-    // ── Notifications from demand controller ──────────────────────────────────
+    private void handleDemandDetail(long chatId, TelegramRequesterEntity requester, String rawId) {
+        UUID id;
+        try {
+            id = UUID.fromString(rawId);
+        } catch (IllegalArgumentException e) {
+            sender.sendApprovedMenu(chatId);
+            return;
+        }
+        // Só mostra chamados do próprio solicitante
+        Optional<DemandEntity> demand = demandService.listByRequester(requester.getId()).stream()
+            .filter(d -> d.getId().equals(id))
+            .findFirst();
+        if (demand.isEmpty()) {
+            sender.sendNoDemands(chatId);
+            return;
+        }
+        DemandEntity d = demand.get();
+        sender.sendDemandDetail(chatId,
+            "*Chamado* `" + TelegramSender.escape(d.getProtocol()) + "`\n\n" +
+            "*Título:* " + TelegramSender.escape(d.getTitle()) + "\n" +
+            "*Status:* " + translateStatus(d.getStatus()) + "\n" +
+            "*Técnico:* " + (d.getAssigneeUserId() != null ? "atribuído" : "_aguardando técnico_"));
+    }
+
+    private List<Map<String, String>> toButtons(List<DemandEntity> demands) {
+        return demands.stream()
+            .limit(MAX_DEMAND_BUTTONS)
+            .map(d -> Map.of(
+                "id", d.getId().toString(),
+                "label", statusIcon(d.getStatus()) + " " + shorten(d.getTitle()) + " · " + translateStatus(d.getStatus())))
+            .toList();
+    }
+
+    // ── Notificações ──────────────────────────────────────────────────────────
+
+    public void notifyDemandCreated(TelegramRequesterEntity requester, DemandEntity demand) {
+        if (requester.getTelegramChatId() == null) return;
+        sender.sendDemandCreated(Long.parseLong(requester.getTelegramChatId()), demand.getProtocol(), demand.getTitle());
+    }
 
     public void notifyDemandAssigned(DemandEntity demand, String technicianName) {
         findRequesterChatId(demand).ifPresent(chatId ->
@@ -389,13 +298,13 @@ public class TelegramBotService {
     public void notifyDemandConcluded(DemandEntity demand, String technicianName, String justification) {
         findRequesterChatId(demand).ifPresent(chatId ->
             sender.sendDemandConcludedNotification(chatId, demand.getProtocol(),
-                technicianName != null ? technicianName : "Tecnico", justification));
+                technicianName != null ? technicianName : "Técnico", justification));
     }
 
     public void notifyDemandInterrupted(DemandEntity demand, String technicianName, String justification) {
         findRequesterChatId(demand).ifPresent(chatId ->
             sender.sendDemandInterruptedNotification(chatId, demand.getProtocol(),
-                technicianName != null ? technicianName : "Tecnico", justification));
+                technicianName != null ? technicianName : "Técnico", justification));
     }
 
     public void notifyApproved(String telegramChatId) {
@@ -421,6 +330,11 @@ public class TelegramBotService {
         contactRepository.save(contact);
     }
 
+    private static String shorten(String title) {
+        if (title == null) return "";
+        return title.length() <= BUTTON_TITLE_MAX ? title : title.substring(0, BUTTON_TITLE_MAX - 1) + "…";
+    }
+
     private static String normalizePhone(String phone) {
         if (phone == null) return "";
         String digits = phone.replaceAll("[^0-9]", "");
@@ -428,11 +342,20 @@ public class TelegramBotService {
         return phone;
     }
 
+    private static String statusIcon(DemandStatus status) {
+        return switch (status) {
+            case TODO -> "🟠";
+            case IN_PROGRESS -> "🔵";
+            case DONE -> "🟢";
+            case INTERRUPTED -> "🔴";
+        };
+    }
+
     private static String translateStatus(DemandStatus status) {
         return switch (status) {
             case TODO -> "A Fazer";
             case IN_PROGRESS -> "Em Andamento";
-            case DONE -> "Concluido";
+            case DONE -> "Concluído";
             case INTERRUPTED -> "Interrompido";
         };
     }
