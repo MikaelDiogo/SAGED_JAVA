@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
-  <title>SAGED â€” Suporte de TI</title>
+  <title>SAGED — Suporte de TI</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -38,7 +38,7 @@
     .section-title { font-size: 20px; font-weight: 800; color: #1a1a2e; margin-bottom: 6px; }
     .section-sub   { font-size: 13px; color: #6c757d; margin-bottom: 24px; line-height: 1.6; }
 
-    /* ApresentaÃ§Ã£o */
+    /* Apresentação */
     .intro-hero {
       background: linear-gradient(135deg, #1a4731, #2d9c5f);
       border-radius: 18px; padding: 28px 20px; text-align: center; margin-bottom: 22px;
@@ -91,7 +91,7 @@
       box-shadow: 0 4px 16px rgba(45,156,95,.15);
     }
 
-    /* FormulÃ¡rio */
+    /* Formulário */
     .selected-badge {
       display: flex; align-items: center; gap: 10px;
       background: #f0faf4; border: 1.5px solid #2d9c5f;
@@ -147,19 +147,19 @@
 </head>
 <body>
 <div class="header">
-  <div class="header-logo">ðŸŽ«</div>
+  <div class="header-logo">🎫</div>
   <div class="header-text">
     <h1>SAGED</h1>
-    <p>Suporte de TI â€” Prefeitura de CrateÃºs</p>
+    <p>Suporte de TI — Prefeitura de Crateús</p>
   </div>
 </div>
 
-<!-- PÃ¡gina 0: ApresentaÃ§Ã£o -->
+<!-- Página 0: Apresentação -->
 <div class="page active" id="p0">
   <div class="intro-hero">
-    <div class="hero-icon">ðŸ–¥ï¸</div>
+    <div class="hero-icon">🖥️</div>
     <h2>Suporte de TI</h2>
-    <p>Abra chamados de manutenÃ§Ã£o e internet diretamente pelo Telegram, sem filas e sem ligaÃ§Ãµes.</p>
+    <p>Abra chamados de manutenção e internet diretamente pelo Telegram, sem filas e sem ligações.</p>
   </div>
 
   <div class="section-tag">Como funciona</div>
@@ -174,37 +174,37 @@
     <div class="flow-step">
       <div class="step-num">2</div>
       <div class="step-text">
-        <strong>TÃ©cnico assume</strong>
-        <span>Um tÃ©cnico da Seplati recebe e assume o atendimento.</span>
+        <strong>Técnico assume</strong>
+        <span>Um técnico da Seplati recebe e assume o atendimento.</span>
       </div>
     </div>
     <div class="flow-step">
       <div class="step-num">3</div>
       <div class="step-text">
         <strong>Problema resolvido</strong>
-        <span>VocÃª recebe a confirmaÃ§Ã£o assim que o chamado Ã© concluÃ­do.</span>
+        <span>Você recebe a confirmação assim que o chamado é concluído.</span>
       </div>
     </div>
   </div>
 
   <div class="info-note">
     <i class="ti ti-info-circle"></i>
-    <span>O tombamento (nÃºmero de patrimÃ´nio) do equipamento <strong>nÃ£o Ã© solicitado aqui</strong> â€” o tÃ©cnico registra esse dado ao recolher o equipamento.</span>
+    <span>O tombamento (número de patrimônio) do equipamento <strong>não é solicitado aqui</strong> — o técnico registra esse dado ao recolher o equipamento.</span>
   </div>
 
   <button class="btn btn-primary" onclick="show('p1')">Abrir Chamado</button>
 </div>
 
-<!-- PÃ¡gina 1: Especialidade -->
+<!-- Página 1: Especialidade -->
 <div class="page" id="p1">
   <div class="section-tag">Passo 1 de 2</div>
   <div class="section-title">Tipo de atendimento</div>
-  <div class="section-sub">Selecione a Ã¡rea do seu chamado.</div>
+  <div class="section-sub">Selecione a área do seu chamado.</div>
   <div class="cards">
-    <div class="spec-card" onclick="pick('MANUT','ti-tool','ManutenÃ§Ã£o','Hardware e perifÃ©ricos')">
+    <div class="spec-card" onclick="pick('MANUT','ti-tool','Manutenção','Hardware e periféricos')">
       <div class="icon-wrap"><i class="ti ti-tool"></i></div>
-      <div class="label">ManutenÃ§Ã£o</div>
-      <div class="desc">Hardware e perifÃ©ricos</div>
+      <div class="label">Manutenção</div>
+      <div class="desc">Hardware e periféricos</div>
     </div>
     <div class="spec-card" onclick="pick('INTERNET','ti-wifi','Internet','Redes e conectividade')">
       <div class="icon-wrap"><i class="ti ti-wifi"></i></div>
@@ -214,11 +214,11 @@
   </div>
 </div>
 
-<!-- PÃ¡gina 2: FormulÃ¡rio -->
+<!-- Página 2: Formulário -->
 <div class="page" id="p2">
   <div class="section-tag">Passo 2 de 2</div>
   <div class="section-title">Descreva o problema</div>
-  <div class="section-sub">Quanto mais detalhes, mais rÃ¡pido o atendimento.</div>
+  <div class="section-sub">Quanto mais detalhes, mais rápido o atendimento.</div>
 
   <div class="selected-badge" onclick="show('p1')">
     <div class="icon-wrap" style="width:32px;height:32px;border-radius:8px;flex-shrink:0;background:#e8f7ef;display:flex;align-items:center;justify-content:center;">
@@ -231,26 +231,26 @@
   <div class="error-box" id="errBox"></div>
 
   <div class="field">
-    <label for="titleIn">TÃ­tulo do chamado *</label>
-    <input type="text" id="titleIn" placeholder="Ex.: Computador da recepÃ§Ã£o nÃ£o liga" maxlength="255"/>
+    <label for="titleIn">Título do chamado *</label>
+    <input type="text" id="titleIn" placeholder="Ex.: Computador da recepção não liga" maxlength="255"/>
   </div>
 
   <div class="field">
-    <label for="descIn">DescriÃ§Ã£o <span class="optional-tag">opcional</span></label>
-    <textarea id="descIn" rows="3" placeholder="Descreva melhor o problema, quando comeÃ§ou, mensagens de erro..."></textarea>
+    <label for="descIn">Descrição <span class="optional-tag">opcional</span></label>
+    <textarea id="descIn" rows="3" placeholder="Descreva melhor o problema, quando começou, mensagens de erro..."></textarea>
   </div>
 
   <button class="btn btn-primary" id="submitBtn" onclick="submit()">Abrir Chamado</button>
 </div>
 
-<!-- PÃ¡gina 3: Sucesso -->
+<!-- Página 3: Sucesso -->
 <div class="page" id="p3">
   <div class="success-wrap">
-    <div class="success-icon">âœ…</div>
+    <div class="success-icon">✅</div>
     <h2>Chamado aberto!</h2>
     <p>Registrado com sucesso. Protocolo:</p>
     <div class="protocol" id="proto"></div>
-    <p style="font-size:13px;color:#6c757d;margin-bottom:20px;">Um tÃ©cnico entrarÃ¡ em contato em breve.</p>
+    <p style="font-size:13px;color:#6c757d;margin-bottom:20px;">Um técnico entrará em contato em breve.</p>
     <button class="btn btn-primary" onclick="window.Telegram?.WebApp?.close()">Fechar</button>
   </div>
 </div>

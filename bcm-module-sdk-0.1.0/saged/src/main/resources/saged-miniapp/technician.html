@@ -433,9 +433,8 @@
         INTERRUPTED: 'Chamado interrompido.'
       };
       document.getElementById('successMsg').textContent = STATUS_MSG[pendingStatus] || 'Status atualizado!';
-      document.getElementById('successToast').classList.add('show');
-
       openDetail(updated.id);
+      document.getElementById('successToast').classList.add('show');
     } catch (e) {
       err.textContent = 'Erro: ' + e.message;
       err.classList.add('show');
