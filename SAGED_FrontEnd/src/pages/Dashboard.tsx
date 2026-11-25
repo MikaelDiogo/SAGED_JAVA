@@ -1,25 +1,25 @@
-import { 
-  SimpleGrid, Grid, Paper, Text, Title, Stack, 
-  Group, Badge, Button, Container, Table, Progress,
-  Box, Tooltip, Loader, Center, RingProgress
-} from '@mantine/core';
-import { 
+import { Container, Grid, RingProgress, SimpleGrid, Tooltip } from '@mantine/core';
+import {
   IconClipboardList, IconPlayerPlay, IconCheck,
-  IconAlertTriangle, IconChevronLeft, IconTrendingUp,
-  IconClock, IconBarrierBlock
+  IconAlertTriangle, IconChevronLeft, IconClock, IconBarrierBlock,
+  IconListSearch,
 } from '@tabler/icons-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo, useContext } from 'react';
+import type { CSSProperties } from 'react';
 import { api } from '../services/api';
 import { StatCard } from '../components/StatCard';
 import { AuthContext } from '../contexts/AuthContext';
 import { TechActivity } from '../components/TechActivity';
 import { TourPageGate } from '../components/Tour';
+import { Panel, StatusPill, EmptyState, SkeletonRows } from '../components/ui';
+import { STATUS_META } from '../components/ui/status';
 import { buildDemandsUrl } from '../utils/demandNavigation';
 import type { Demand } from '../pages/Demands';
-import type { StatusType } from '../types';
 
 interface OrgUnit { id: string; name: string; code: string; }
+
+const RECENT_LIMIT = 5;
 
 export function Dashboard() {
   const [searchParams] = useSearchParams();
@@ -32,10 +32,10 @@ export function Dashboard() {
   const unitName = searchParams.get('name') || 'Secretaria Selecionada';
 
   const { user } = useContext(AuthContext);
-  
+
 
   const roleUpper = useMemo(() => user?.role?.trim().toUpperCase(), [user]);
-  
+
   // Mapeamento das permissões de acordo com as especificações do Swagger
   const isAdminGeral = useMemo(() => roleUpper === 'SAGED_ADMIN_GERAL', [roleUpper]);
   const isTechnician = useMemo(() => roleUpper === 'SAGED_TECNICO', [roleUpper]);
@@ -74,7 +74,7 @@ export function Dashboard() {
       result = result.filter(demand => String(demand.departmentId) === String(unitId));
     }
 
-    // Nota: O backend já retorna apenas as demandas permitidas para técnicos 
+    // Nota: O backend já retorna apenas as demandas permitidas para técnicos
     // e líderes de setor via RBAC automático no endpoint /demands.
     return result;
   }, [allDemands, unitId]);
@@ -94,8 +94,8 @@ export function Dashboard() {
 
     const completed = demands.filter(d => d.status === 'DONE').length;
     const interrupted = demands.filter(d => d.status === 'INTERRUPTED').length;
-    
-    const critical = interrupted; 
+
+    const critical = interrupted;
 
     return {
       resolutionRate: Math.round((completed / total) * 100),
@@ -113,213 +113,234 @@ export function Dashboard() {
     };
   }, [demands]);
 
+  const totalCount =
+    counters.aFazer + counters.emAndamento + counters.concluido + counters.interrompido;
+
   const priorityData = useMemo(() => {
-    const total =
-      counters.aFazer + counters.emAndamento + counters.concluido + counters.interrompido;
-    const pct = (count: number) => (total > 0 ? Math.round((count / total) * 100) : 0);
+    const pct = (count: number) => (totalCount > 0 ? Math.round((count / totalCount) * 100) : 0);
 
     return [
-      { label: 'Aguardando Início', count: counters.aFazer, color: 'yellow', progress: pct(counters.aFazer) },
-      { label: 'Em Andamento', count: counters.emAndamento, color: 'blue', progress: pct(counters.emAndamento) },
-      { label: 'Concluídos', count: counters.concluido, color: 'green', progress: pct(counters.concluido) },
-      { label: 'Retidas', count: counters.interrompido, color: 'red', progress: pct(counters.interrompido) },
+      { label: 'Aguardando início', count: counters.aFazer, color: STATUS_META.TODO.color, progress: pct(counters.aFazer) },
+      { label: 'Em andamento', count: counters.emAndamento, color: STATUS_META.IN_PROGRESS.color, progress: pct(counters.emAndamento) },
+      { label: 'Concluídos', count: counters.concluido, color: STATUS_META.DONE.color, progress: pct(counters.concluido) },
+      { label: 'Retidas', count: counters.interrompido, color: STATUS_META.INTERRUPTED.color, progress: pct(counters.interrompido) },
     ];
-  }, [counters]);
+  }, [counters, totalCount]);
 
-  const renderStatusBadge = (status: StatusType) => {
-    const configs: Record<StatusType, { color: string; label: string }> = {
-      TODO: { color: 'gray', label: 'A Fazer' },
-      IN_PROGRESS: { color: 'blue', label: 'Em Andamento' },
-      DONE: { color: 'green', label: 'Concluído' },
-      INTERRUPTED: { color: 'red', label: 'Interrompido' },
-    };
-    const current = configs[status] || { color: 'gray', label: status };
-    return <Badge color={current.color} size="xs" variant="light">{current.label}</Badge>;
-  };
+  const share = (count: number) => (totalCount > 0 ? Math.round((count / totalCount) * 100) : 0);
+  const unitNameOf = (departmentId: string) => orgUnits.find(u => u.id === departmentId)?.name;
+
+  const scopeChip = isTechnician ? (
+    <span className="sg-chip sg-chip--blue">
+      <span className="sg-chip__dot" />
+      Painel técnico: meus chamados
+    </span>
+  ) : hasSectorView ? (
+    <span className="sg-chip sg-chip--brand">
+      <span className="sg-chip__dot" />
+      Fila da secretaria: {displayUnitName}
+    </span>
+  ) : isAdminGeral && unitId && unitId !== 'geral' ? (
+    <span className="sg-chip sg-chip--brand">
+      <span className="sg-chip__dot" />
+      {displayUnitName}
+    </span>
+  ) : (
+    <span className="sg-chip sg-chip--brand">
+      <span className="sg-chip__dot" />
+      Visão global administrativa (SAGED)
+    </span>
+  );
+
+  const resolutionColor = STATUS_META.DONE.color;
+  const stripVars = (c: string) => ({ '--kc': c, '--kc-soft': `${c}14` }) as CSSProperties;
 
   return (
-    <Container size="xl" pt={100} pb={80}>
-      <TourPageGate phaseId="header-dashboard" />
-      <Stack gap="lg">
-        
-        {isAdminGeral && (
-          <Box>
-            <Button
-              variant="subtle"
-              color="gray.6"
-              leftSection={<IconChevronLeft size={16} />}
-              onClick={() => navigate('/selecionar-unidade')}
-              size="xs"
-              p={0}
-              styles={{ root: { '&:hover': { backgroundColor: 'transparent', textDecoration: 'underline' } } }}
-            >
-              Voltar para Seleção de Unidade
-            </Button>
-          </Box>
-        )}
+    <div className="sg-page">
+      <Container size="xl" pt={44} pb={72}>
+        <TourPageGate phaseId="header-dashboard" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-        <Group justify="space-between" align="flex-start">
-          <Stack gap={4}>
-            <Group gap="xs">
-              {isTechnician ? (
-                <Badge color="blue.8" variant="filled" radius="sm">
-                  {"PAINEL TECNICO: MEUS CHAMADOS"}
-                </Badge>
-              ) : hasSectorView ? (
-                <Badge color="green.8" variant="filled" radius="sm">
-                  FILA DA SECRETARIA: {displayUnitName.toUpperCase()}
-                </Badge>
-              ) : isAdminGeral && unitId && unitId !== 'geral' ? (
-                <Badge color="green.9" variant="filled" radius="sm">
-                  {displayUnitName.toUpperCase()}
-                </Badge>
-              ) : (
-                <Badge color="green.9" variant="filled" radius="sm">
-                  VISÃO GLOBAL ADMINISTRATIVA (SAGED)
-                </Badge>
-              )}
+          <div>
+            {isAdminGeral && (
+              <button type="button" className="sg-back" style={{ marginBottom: 18 }} onClick={() => navigate('/selecionar-unidade')}>
+                <IconChevronLeft size={15} />
+                Voltar para seleção de unidade
+              </button>
+            )}
+
+            <div className="sg-eyebrow">
+              {scopeChip}
               <Tooltip label="Sincronizado em tempo real com o banco de dados">
-                <Badge color="gray" variant="outline" radius="sm" style={{ cursor: 'help' }}>LIVE</Badge>
+                <span className="sg-chip" style={{ cursor: 'help' }}>
+                  <span className="sg-chip__dot sg-chip__dot--live" />
+                  Live
+                </span>
               </Tooltip>
-            </Group>
-            <Title order={2} c="green.9" fw={900} style={{ letterSpacing: '-0.5px' }}>
-              Painel de Performance e Produtividade
-            </Title>
-            <Text size="xs" c="dimmed">Métricas operacionais extraídas do fluxo atual de chamados do sistema</Text>
-          </Stack>
-        </Group>
+            </div>
+            <h1 className="sg-h1">Painel de Performance e Produtividade</h1>
+            <p className="sg-lead">Métricas operacionais extraídas do fluxo atual de chamados do sistema.</p>
+          </div>
 
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md" data-tour="dashboard-metrics">
-          <StatCard label="A Fazer" value={counters.aFazer} color="gray" icon={IconClipboardList} />
-          <StatCard label="Em Andamento" value={counters.emAndamento} color="blue" icon={IconPlayerPlay} />
-          <StatCard label="Concluído" value={counters.concluido} color="green" icon={IconCheck} />
-          <StatCard label="Interrompidas" value={counters.interrompido} color="red" icon={IconAlertTriangle} />
-        </SimpleGrid>
+          <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }} spacing="md" data-tour="dashboard-metrics">
+            <StatCard label="A Fazer" value={counters.aFazer} color={STATUS_META.TODO.color} icon={IconClipboardList}
+              share={share(counters.aFazer)} hint={`${share(counters.aFazer)}% do total`} />
+            <StatCard label="Em Andamento" value={counters.emAndamento} color={STATUS_META.IN_PROGRESS.color} icon={IconPlayerPlay}
+              share={share(counters.emAndamento)} hint={`${share(counters.emAndamento)}% do total`} />
+            <StatCard label="Concluído" value={counters.concluido} color={STATUS_META.DONE.color} icon={IconCheck}
+              share={share(counters.concluido)} hint={`${share(counters.concluido)}% do total`} />
+            <StatCard label="Interrompidas" value={counters.interrompido} color={STATUS_META.INTERRUPTED.color} icon={IconAlertTriangle}
+              share={share(counters.interrompido)} hint={`${share(counters.interrompido)}% do total`} />
+          </SimpleGrid>
 
-        <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md" data-tour="dashboard-performance">
-          <Paper withBorder p="md" radius="md" shadow="xs" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Stack gap={2}>
-              <Text fw={800} size="xs" tt="uppercase" c="gray.7">Taxa de Resolução</Text>
-              <Text size="xl" fw={900} c="green.8">{metrics.resolutionRate}%</Text>
-              <Text size="10px" c="dimmed">Eficiência interna de chamados</Text>
-            </Stack>
-            <RingProgress size={65} thickness={6} roundCaps sections={[{ value: metrics.resolutionRate, color: 'green.7' }]} />
-          </Paper>
-
-          <Paper withBorder p="md" radius="md" shadow="xs" style={{ display: 'flex', alignItems: 'center', gap: 'md' }}>
-            <Center bg="red.0" p="xs" style={{ borderRadius: '8px' }}>
-              <IconBarrierBlock size={24} color="var(--mantine-color-red-6)" />
-            </Center>
-            <Stack gap={2}>
-              <Text fw={800} size="xs" tt="uppercase" c="gray.7">Demandas Retidas</Text>
-              <Text size="xl" fw={900} c="red.7">{metrics.interruptedCount}</Text>
-              <Text size="10px" c="dimmed">Aguardando peça ou suporte externo</Text>
-            </Stack>
-          </Paper>
-
-          <Paper withBorder p="md" radius="md" shadow="xs" style={{ display: 'flex', alignItems: 'center', gap: 'md' }}>
-            <Center bg="blue.0" p="xs" style={{ borderRadius: '8px' }}>
-              <IconClock size={24} color="var(--mantine-color-blue-6)" />
-            </Center>
-            <Stack gap={2}>
-              <Text fw={800} size="xs" tt="uppercase" c="gray.7">Tempo de Resposta</Text>
-              <Text size="xl" fw={900} c="blue.8">Sub-1h</Text>
-              <Text size="10px" c="dimmed">Estimativa de primeiro atendimento</Text>
-            </Stack>
-          </Paper>
-        </SimpleGrid>
-
-        <Grid columns={12}>
-          <Grid.Col span={{ base: 12, md: 4 }}>
-            <Paper withBorder p="xl" radius="md" shadow="xs" h="100%" data-tour="dashboard-distribution">
-              <Group justify="space-between" mb="xs">
-                <Text fw={800} size="xs" tt="uppercase" c="gray.7">Distribuição de Carga</Text>
-                <IconTrendingUp size={16} color="gray" />
-              </Group>
-              <Text size="xs" c="dimmed" mb="xl">Volume de tarefas segmentadas por urgência operacional</Text>
-              <Stack gap="lg">
-                {priorityData.map((item) => (
-                  <Box key={item.label}>
-                    <Group justify="space-between" mb={5}>
-                      <Text size="xs" fw={700}>{item.label}</Text>
-                      <Badge color={item.color} variant="light" size="sm" radius="xs">{item.count} itens</Badge>
-                    </Group>
-                    <Progress value={item.progress} color={item.color} size="sm" radius="xl" striped animated={item.color === 'red'} />
-                  </Box>
-                ))}
-              </Stack>
-            </Paper>
-          </Grid.Col>
-
-          <Grid.Col span={{ base: 12, md: 8 }}>
-            <Stack gap="md">
-               <Paper withBorder p="md" radius="md" shadow="xs" style={{ minHeight: '260px' }} data-tour="dashboard-table">
-                  <Text fw={800} size="xs" mb="md" tt="uppercase" c="gray.7">Fluxo Recente de Demandas Vinculadas</Text>
-                  {loading ? (
-                    <Center py="xl" style={{ height: '180px' }}><Loader size="sm" color="green.8" /></Center>
-                  ) : demands.length === 0 ? (
-                    <Center py="xl" style={{ height: '180px' }}>
-                      <Text size="xs" c="dimmed" fw={600}>Nenhuma demanda localizada para o escopo deste usuário.</Text>
-                    </Center>
-                  ) : (
-                    <Box style={{ overflowX: 'auto' }}>
-                      <Table verticalSpacing="sm" highlightOnHover>
-                        <Table.Thead>
-                          <Table.Tr>
-                            <Table.Th style={{ fontSize: '10px', color: 'var(--mantine-color-dimmed)' }}>PROTOCOLO</Table.Th>
-                            <Table.Th style={{ fontSize: '10px', color: 'var(--mantine-color-dimmed)' }}>DESCRIÇÃO DA DEMANDA</Table.Th>
-                            <Table.Th style={{ fontSize: '10px', color: 'var(--mantine-color-dimmed)' }}>STATUS</Table.Th>
-                          </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                          {demands.slice(0, 4).map((demand) => (
-                              //Entrada clicável para detalhes da demanda, passando o ID da unidade e nome via query params para o filtro na página de demandas
-                            <Table.Tr
-                              key={demand.id}
-                              onClick={() => {
-                                const deptName = orgUnits.find(u => u.id === demand.departmentId)?.name ?? 'Secretaria';
-                                navigate(buildDemandsUrl({ ...demand, department: { name: deptName } }));
-                              }}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              <Table.Td><Text size="xs" fw={800} c="green.9">#{demand.protocol}</Text></Table.Td>
-                              <Table.Td>
-                                <Stack gap={2}>
-                                  <Text size="xs" fw={600} lineClamp={1} style={{ maxWidth: '320px' }}>
-                                    {demand.title || demand.description}
-                                  </Text>
-                                  {orgUnits.find(u => u.id === demand.departmentId)?.name && (
-                                    <Text size="10px" c="dimmed" fw={700}>
-                                      SETOR: {orgUnits.find(u => u.id === demand.departmentId)!.name.toUpperCase()}
-                                    </Text>
-                                  )}
-                                </Stack>
-                              </Table.Td>
-                              <Table.Td>{renderStatusBadge(demand.status)}</Table.Td>
-                            </Table.Tr>
-                          ))}
-                        </Table.Tbody>
-                      </Table>
-                    </Box>
-                  )}
-               </Paper>
-
-               <Paper withBorder p="md" radius="md" shadow="xs" bg="gray.0" style={{ borderLeft: '4px solid var(--mantine-color-green-6)' }}>
-                <Group justify="space-between" mb="xs">
-                  <Text fw={800} size="xs" tt="uppercase" c="gray.7">Atividade Técnica Ativa</Text>
-                  <Badge variant="dot" color="green">Monitoramento Saged</Badge>
-                </Group>
-                <TechActivity 
-                  techName={user?.name || "Técnico"} 
-                  demand={isTechnician ? "Visualização de Fila Operacional Pessoal" : "Supervisão Geral do Painel SAGED"} 
-                  status="ONLINE" 
-                  time="Agora"
+          <Panel data-tour="dashboard-performance">
+            <div className="sg-strip">
+              <div className="sg-strip__cell" style={stripVars(resolutionColor)}>
+                <div>
+                  <div className="sg-strip__label">Taxa de resolução</div>
+                  <div className="sg-strip__value" style={{ color: resolutionColor }}>{metrics.resolutionRate}%</div>
+                  <div className="sg-strip__hint">Eficiência interna de chamados</div>
+                </div>
+                <RingProgress
+                  size={60}
+                  thickness={6}
+                  roundCaps
+                  rootColor="#edf1ee"
+                  sections={[{ value: metrics.resolutionRate, color: resolutionColor }]}
                 />
-              </Paper>
-            </Stack>
-          </Grid.Col>
-        </Grid>
-      </Stack>
-    </Container>
+              </div>
+
+              <div className="sg-strip__cell" style={stripVars(STATUS_META.INTERRUPTED.color)}>
+                <div>
+                  <div className="sg-strip__label">Demandas retidas</div>
+                  <div className="sg-strip__value">{metrics.interruptedCount}</div>
+                  <div className="sg-strip__hint">Aguardando peça ou suporte externo</div>
+                </div>
+                <span className="sg-strip__icon"><IconBarrierBlock size={20} stroke={1.7} /></span>
+              </div>
+
+              <div className="sg-strip__cell" style={stripVars(STATUS_META.IN_PROGRESS.color)}>
+                <div>
+                  <div className="sg-strip__label">Tempo de resposta</div>
+                  <div className="sg-strip__value">Sub-1h</div>
+                  <div className="sg-strip__hint">Estimativa de primeiro atendimento</div>
+                </div>
+                <span className="sg-strip__icon"><IconClock size={20} stroke={1.7} /></span>
+              </div>
+            </div>
+          </Panel>
+
+          <Grid columns={12} gap="md">
+            <Grid.Col span={{ base: 12, md: 5, lg: 4 }} style={{ display: 'flex' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1, minWidth: 0 }}>
+              <Panel
+                title="Distribuição de carga"
+                subtitle="Volume de chamados por situação operacional"
+                
+
+                data-tour="dashboard-distribution"
+              >
+                {totalCount === 0 ? (
+                  <EmptyState>Sem chamados para distribuir.</EmptyState>
+                ) : (
+                  <div className="sg-stack" role="img" aria-label="Distribuição de chamados por situação">
+                    {priorityData.filter(i => i.count > 0).map(i => (
+                      <i key={i.label} style={{ flex: `${i.count} 1 0`, background: i.color }} />
+                    ))}
+                  </div>
+                )}
+                <div className="sg-legend">
+                  {priorityData.map(item => (
+                    <div className="sg-legend__row" key={item.label} style={{ '--kc': item.color } as CSSProperties}>
+                      <span className="sg-legend__dot" />
+                      <span className="sg-legend__name">{item.label}</span>
+                      <span className="sg-legend__count">{item.count}</span>
+                      <span className="sg-legend__pct">{item.progress}%</span>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+                <Panel
+                  title="Atividade técnica ativa"
+                  className="sg-panel--grow"
+                  action={<span className="sg-chip"><span className="sg-chip__dot sg-chip__dot--live" />Monitoramento SAGED</span>}
+                  flush
+                  style={{ flex: 1 }}
+                >
+                  <TechActivity
+                    techName={user?.name || "Técnico"}
+                    demand={isTechnician ? "Visualização de Fila Operacional Pessoal" : "Supervisão Geral do Painel SAGED"}
+                    status="ONLINE"
+                    time="Agora"
+                  />
+                </Panel>
+              </div>
+            </Grid.Col>
+
+            <Grid.Col span={{ base: 12, md: 7, lg: 8 }} style={{ display: 'flex' }}>
+                <Panel
+                  title="Fluxo recente de demandas vinculadas"
+                  subtitle="Clique em uma linha para abrir o chamado no quadro"
+                  flush
+                  data-tour="dashboard-table"
+                  className="sg-panel--stick"
+                  style={{ flex: 1 }}
+                  footer={
+                    !loading && demands.length > 0 ? (
+                      <>
+                        <span>Exibindo {Math.min(RECENT_LIMIT, demands.length)} de {demands.length} chamados</span>
+                      </>
+                    ) : undefined
+                  }
+                >
+                  {loading ? (
+                    <SkeletonRows rows={RECENT_LIMIT} />
+                  ) : demands.length === 0 ? (
+                    <EmptyState icon={<IconListSearch size={18} stroke={1.6} />}>
+                      Nenhuma demanda localizada para o escopo deste usuário.
+                    </EmptyState>
+                  ) : (
+                    <div className="sg-tablewrap">
+                      <table className="sg-table sg-table--click">
+                        <thead>
+                          <tr>
+                            <th>Protocolo</th>
+                            <th>Descrição da demanda</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {demands.slice(0, RECENT_LIMIT).map((demand) => {
+                            const sector = unitNameOf(demand.departmentId);
+                            return (
+                              //Entrada clicável para detalhes da demanda, passando o ID da unidade e nome via query params para o filtro na página de demandas
+                              <tr
+                                key={demand.id}
+                                onClick={() => {
+                                  const deptName = sector ?? 'Secretaria';
+                                  navigate(buildDemandsUrl({ ...demand, department: { name: deptName } }));
+                                }}
+                              >
+                                <td><span className="sg-proto">#{demand.protocol}</span></td>
+                                <td>
+                                  <span className="strong" style={{ display: 'block', maxWidth: 340, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {demand.title || demand.description}
+                                  </span>
+                                  {sector && <span className="sub">{sector}</span>}
+                                </td>
+                                <td><StatusPill status={demand.status} /></td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </Panel>
+            </Grid.Col>
+          </Grid>
+        </div>
+      </Container>
+    </div>
   );
 }

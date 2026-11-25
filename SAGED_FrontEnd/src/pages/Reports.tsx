@@ -1,16 +1,20 @@
 import {
-  Badge, Box, Button, Checkbox, Container, Divider, Grid, Group,
-  Loader, MultiSelect, Paper, RingProgress, SimpleGrid, Stack,
-  Table, Text, TextInput, Title, Center,
+  Button, Center, Checkbox, Container, Grid, Group, Loader, MultiSelect,
+  RingProgress, SimpleGrid, Stack, TextInput,
 } from '@mantine/core';
 import { AreaChart } from '@mantine/charts';
 import {
-  IconAlertTriangle, IconChartBar, IconClock, IconDownload,
-  IconFilter, IconUsers,
+  IconAlertTriangle, IconChartBar, IconChecks, IconDownload,
+  IconFilter, IconUserOff,
 } from '@tabler/icons-react';
 import { useCallback, useEffect, useMemo, useState, useContext } from 'react';
+import type { CSSProperties } from 'react';
 import { notifications } from '@mantine/notifications';
 import { TourPageGate } from '../components/Tour';
+import { StatCard } from '../components/StatCard';
+import { Panel, StatusPill, MiniBar, EmptyState, SkeletonRows } from '../components/ui';
+import { STATUS_META } from '../components/ui/status';
+import type { StatusKey } from '../components/ui/status';
 import { api } from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
 import type { Demand } from './Demands';
@@ -40,6 +44,7 @@ interface DemandRow {
   departmentName: string;
   categoryCode: string;
   statusLabel: string;
+  status: string;
   technicianName: string | null;
   ageHours: number;
 }
@@ -206,6 +211,7 @@ function buildReport(
     departmentName: orgUnits.find(ou => ou.id === d.departmentId)?.name ?? 'Sem setor',
     categoryCode: specialties.find(sp => sp.id === d.specialtyId)?.name ?? d.specialtyId ?? '',
     statusLabel: STATUS_LABELS[d.status] ?? d.status,
+    status: d.status,
     technicianName: d.technician?.name ?? null,
     ageHours: ageHours(d.createdAt),
   });
@@ -326,237 +332,333 @@ export function Reports() {
     { value: 'INTERRUPTED', label: 'Interrompido' },
   ];
 
+
   const kpis = [
-    { label: 'Demandas', value: report?.metrics.total ?? 0, icon: IconChartBar, color: 'blue' },
-    { label: 'Resolução', value: `${report?.metrics.resolutionRate ?? 0}%`, icon: IconUsers, color: 'green' },
-    { label: 'Sem técnico', value: `${report?.metrics.unassigned ?? 0} (${report?.metrics.unassignedRate ?? 0}%)`, icon: IconAlertTriangle, color: 'orange' },
-    { label: 'Interrompidas', value: report?.metrics.interrupted ?? 0, icon: IconClock, color: 'grape' },
+    { label: 'Demandas', value: report?.metrics.total ?? 0, icon: IconChartBar, color: '#1d720a',
+      share: report && report.metrics.total > 0 ? 100 : 0, hint: 'no período filtrado' },
+    { label: 'Resolução', value: `${report?.metrics.resolutionRate ?? 0}%`, icon: IconChecks, color: STATUS_META.DONE.color,
+      share: report?.metrics.resolutionRate ?? 0, hint: `${report?.metrics.concluded ?? 0} ${report?.metrics.concluded === 1 ? "concluída" : "concluídas"}` },
+    { label: 'Sem técnico', value: report?.metrics.unassigned ?? 0, icon: IconUserOff, color: STATUS_META.TODO.color,
+      share: report?.metrics.unassignedRate ?? 0, hint: `${report?.metrics.unassignedRate ?? 0}% do total` },
+    { label: 'Interrompidas', value: report?.metrics.interrupted ?? 0, icon: IconAlertTriangle, color: STATUS_META.INTERRUPTED.color,
+      share: report?.metrics.interruptionRate ?? 0, hint: `${report?.metrics.interruptionRate ?? 0}% do total` },
   ];
 
   const ringSections = useMemo(() => {
-    if (!report || report.metrics.total === 0) return [{ value: 100, color: 'gray.2' }];
-    const colors: Record<string, string> = {
-      TODO: 'blue.6', IN_PROGRESS: 'orange.6', DONE: 'green.7', INTERRUPTED: 'red.7',
-    };
-    return Object.entries(report.statusCounts)
-      .filter(([, count]) => count > 0)
-      .map(([status, count]) => ({
-        value: Math.round((count / report.metrics.total) * 100),
-        color: colors[status] ?? 'gray.5',
+    if (!report || report.metrics.total === 0) return [{ value: 100, color: '#edf1ee' }];
+    return (Object.keys(STATUS_META) as StatusKey[])
+      .filter(status => (report.statusCounts[status] ?? 0) > 0)
+      .map(status => ({
+        value: ((report.statusCounts[status] ?? 0) / report.metrics.total) * 100,
+        color: STATUS_META[status].color,
       }));
   }, [report]);
 
+  const resetFilters = () => {
+    setStartDate(monthStartInput());
+    setEndDate(todayInput());
+    setDepartmentIds([]);
+    setStatuses([]);
+    setTechTypeCodes([]);
+    setOnlyUnassigned(false);
+    setOnlyCritical(false);
+    setIncludeDemandList(true);
+  };
+
   if (loadingOptions) {
-    return <Center h="100vh"><Loader color="green" /></Center>;
+    return (
+      <div className="sg-page">
+        <Center h="60vh"><Loader color="green" size="sm" /></Center>
+      </div>
+    );
   }
 
   return (
-    <Box bg="gray.0" mih="100vh" pt={100} pb={60}>
+    <div className="sg-page">
       <TourPageGate phaseId="reports" />
-      <Container size="xl">
-        <Paper withBorder p="xl" radius="sm" shadow="sm" mb="lg">
-          <Group justify="space-between" align="flex-start">
-            <Stack gap={4}>
-              <Title order={2} c="crateus-green.9" fw={900}>Relatório Gerencial Completo</Title>
-              <Text size="sm" c="dimmed">Monte filtros, visualize indicadores e acompanhe o desempenho operacional.</Text>
-            </Stack>
-            <Group>
-              <Button leftSection={<IconFilter size={16} />} variant="light" color="green" loading={loadingReport} onClick={fetchReport} data-tour="reports-filters">
+      <Container size="xl" pt={44} pb={72}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <div className="sg-eyebrow">
+                <span className="sg-chip sg-chip--brand"><span className="sg-chip__dot" />Relatórios</span>
+              </div>
+              <h1 className="sg-h1">Relatório Gerencial Completo</h1>
+              <p className="sg-lead">Monte filtros, visualize indicadores e acompanhe o desempenho operacional.</p>
+            </div>
+            <Group gap="sm">
+              <Button leftSection={<IconFilter size={16} />} variant="default" radius="md" loading={loadingReport} onClick={fetchReport} data-tour="reports-filters">
                 Pré-visualizar
               </Button>
-              <Button leftSection={<IconDownload size={16} />} color="green.8" disabled={!report} onClick={handleExportPDF} data-tour="reports-export">
+              <Button leftSection={<IconDownload size={16} />} color="green.9" radius="md" disabled={!report} onClick={handleExportPDF} data-tour="reports-export">
                 Exportar PDF
               </Button>
             </Group>
-          </Group>
-        </Paper>
+          </div>
 
-        <Grid align="flex-start">
-          <Grid.Col span={{ base: 12, md: 4 }}>
-            <Paper withBorder p="lg" radius="sm" shadow="sm">
-              <Title order={4} fw={900} c="green.9" mb="md">Filtros</Title>
-              <Stack>
-                <SimpleGrid cols={2}>
-                  <TextInput label="Data inicial" type="date" value={startDate} onChange={e => setStartDate(e.currentTarget.value)} />
-                  <TextInput label="Data final" type="date" value={endDate} onChange={e => setEndDate(e.currentTarget.value)} />
-                </SimpleGrid>
-                <MultiSelect
-                  label="Secretarias"
-                  placeholder="Todas permitidas"
-                  data={departmentOptions}
-                  value={departmentIds}
-                  onChange={setDepartmentIds}
-                  searchable
-                  clearable
-                  disabled={!isAdminGeral}
-                />
-                <MultiSelect label="Status" placeholder="Todos" data={statusOptions} value={statuses} onChange={setStatuses} clearable />
-                <MultiSelect label="Categoria de demanda" placeholder="Todas" data={categoryOptions} value={techTypeCodes} onChange={setTechTypeCodes} searchable clearable />
-                <Divider />
-                <Checkbox label="Somente demandas sem técnico assumido" checked={onlyUnassigned} onChange={e => setOnlyUnassigned(e.currentTarget.checked)} />
-                <Checkbox label="Somente demandas críticas/atenção" checked={onlyCritical} onChange={e => setOnlyCritical(e.currentTarget.checked)} />
-                <Checkbox label="Incluir lista analítica de demandas" checked={includeDemandList} onChange={e => setIncludeDemandList(e.currentTarget.checked)} />
-              </Stack>
-            </Paper>
-          </Grid.Col>
+          <Grid align="flex-start" gap="md">
+            <Grid.Col span={{ base: 12, md: 4, lg: 3 }}>
+              <Panel
+                className="sg-filters"
+                title="Filtros"
+                subtitle="Período e escopo do relatório"
+                action={<button type="button" className="sg-back" onClick={resetFilters}>Limpar</button>}
+              >
+                <div className="sg-section">
+                  <div className="sg-filter-label">Período</div>
+                  <SimpleGrid cols={2} spacing="xs">
+                    <TextInput label="Inicial" type="date" value={startDate} onChange={e => setStartDate(e.currentTarget.value)} />
+                    <TextInput label="Final" type="date" value={endDate} onChange={e => setEndDate(e.currentTarget.value)} />
+                  </SimpleGrid>
+                </div>
+                <div className="sg-section">
+                  <div className="sg-filter-label">Escopo</div>
+                  <Stack gap="sm">
+                    <MultiSelect
+                      label="Secretarias"
+                      placeholder="Todas permitidas"
+                      data={departmentOptions}
+                      value={departmentIds}
+                      onChange={setDepartmentIds}
+                      searchable
+                      clearable
+                      disabled={!isAdminGeral}
+                    />
+                    <MultiSelect label="Status" placeholder="Todos" data={statusOptions} value={statuses} onChange={setStatuses} clearable />
+                    <MultiSelect label="Categoria de demanda" placeholder="Todas" data={categoryOptions} value={techTypeCodes} onChange={setTechTypeCodes} searchable clearable />
+                  </Stack>
+                </div>
+                <div className="sg-section">
+                  <div className="sg-filter-label">Opções</div>
+                  <Stack gap="xs">
+                    <Checkbox size="xs" label="Somente demandas sem técnico assumido" checked={onlyUnassigned} onChange={e => setOnlyUnassigned(e.currentTarget.checked)} />
+                    <Checkbox size="xs" label="Somente demandas críticas/atenção" checked={onlyCritical} onChange={e => setOnlyCritical(e.currentTarget.checked)} />
+                    <Checkbox size="xs" label="Incluir lista analítica de demandas" checked={includeDemandList} onChange={e => setIncludeDemandList(e.currentTarget.checked)} />
+                  </Stack>
+                </div>
+              </Panel>
+            </Grid.Col>
 
-          <Grid.Col span={{ base: 12, md: 8 }}>
-            {loadingReport ? (
-              <Center h={360}><Loader color="green" /></Center>
-            ) : !report ? (
-              <Paper withBorder p="xl" radius="sm"><Text c="dimmed">Gere uma prévia para visualizar o relatório.</Text></Paper>
-            ) : (
-              <Stack>
-                <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} data-tour="reports-stats">
-                  {kpis.map(kpi => (
-                    <Paper key={kpi.label} withBorder p="lg" radius="sm" shadow="xs">
-                      <Group justify="space-between">
-                        <Stack gap={0}>
-                          <Text size="xs" c="dimmed" fw={800} tt="uppercase">{kpi.label}</Text>
-                          <Text size="xl" fw={900}>{kpi.value}</Text>
-                        </Stack>
-                        <kpi.icon size={30} />
-                      </Group>
-                    </Paper>
-                  ))}
-                </SimpleGrid>
+            <Grid.Col span={{ base: 12, md: 8, lg: 9 }}>
+              {loadingReport ? (
+                <Panel><SkeletonRows rows={6} /></Panel>
+              ) : !report ? (
+                <Panel><EmptyState>Gere uma prévia para visualizar o relatório.</EmptyState></Panel>
+              ) : (
+                <Stack gap="md">
+                  <div className="sg-legend-inline" style={{ flexWrap: 'wrap' }}>
+                    <span><strong style={{ color: 'var(--sg-text-2)', fontWeight: 600 }}>Período</strong> {fmtPeriod(startDate, endDate)}</span>
+                    <span><strong style={{ color: 'var(--sg-text-2)', fontWeight: 600 }}>Escopo</strong> {report.scope}</span>
+                    <span><strong style={{ color: 'var(--sg-text-2)', fontWeight: 600 }}>Gerado em</strong> {new Date(report.generatedAt).toLocaleString('pt-BR')}</span>
+                  </div>
 
-                <Grid>
-                  <Grid.Col span={{ base: 12, md: 7 }}>
-                    <Paper withBorder p="lg" radius="sm" shadow="xs" h={360}>
-                      <Title order={5} fw={900} mb="sm">Fluxo do Período</Title>
-                      <AreaChart
-                        h={280}
-                        data={report.timelineData}
-                        dataKey="period"
-                        series={[
-                          { name: 'opened', color: 'blue.6', label: 'Abertas' },
-                          { name: 'concluded', color: 'green.7', label: 'Concluídas' },
-                        ]}
-                        curveType="monotone"
-                        withLegend
-                      />
-                    </Paper>
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, md: 5 }}>
-                    <Paper withBorder p="lg" radius="sm" shadow="xs" h={360}>
-                      <Title order={5} fw={900} mb="sm">Distribuição por Status</Title>
-                      <Center>
-                        <RingProgress
-                          size={190}
-                          thickness={20}
-                          sections={ringSections}
-                          label={<Text ta="center" fw={900}>{report.metrics.total}</Text>}
-                        />
-                      </Center>
-                      <SimpleGrid cols={2}>
-                        {Object.entries(report.statusCounts).map(([status, count]) => (
-                          <Group key={status} gap={6}>
-                            <Badge variant="light">{count}</Badge>
-                            <Text size="xs">{STATUS_LABELS[status] ?? status}</Text>
-                          </Group>
-                        ))}
-                      </SimpleGrid>
-                    </Paper>
-                  </Grid.Col>
-                </Grid>
+                  <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }} spacing="md" data-tour="reports-stats">
+                    {kpis.map(kpi => (
+                      <StatCard key={kpi.label} label={kpi.label} value={kpi.value} color={kpi.color} icon={kpi.icon} share={kpi.share} hint={kpi.hint} />
+                    ))}
+                  </SimpleGrid>
 
-                <BreakdownTable title="Resumo por Secretaria" rows={report.departments} empty="Nenhuma secretaria no filtro." />
-                <BreakdownTable title="Categorias de Demanda" rows={report.categories} empty="Nenhuma categoria no filtro." />
+                  <Grid gap="md" align="stretch">
+                    <Grid.Col span={{ base: 12, lg: 7 }} style={{ display: 'flex' }}>
+                      <Panel
+                        title="Fluxo do período"
+                        subtitle="Chamados abertos e concluídos por semana"
+                        style={{ flex: 1 }}
+                        action={
+                          <span className="sg-legend-inline">
+                            <span><i style={{ background: '#1c7ed6' }} />Abertas</span>
+                            <span><i style={{ background: STATUS_META.DONE.color }} />Concluídas</span>
+                          </span>
+                        }
+                      >
+                        {report.metrics.total === 0 ? (
+                          <EmptyState icon={<IconChartBar size={18} stroke={1.6} />}>Sem chamados no período selecionado.</EmptyState>
+                        ) : (
+                          <AreaChart
+                            h={300}
+                            data={report.timelineData}
+                            dataKey="period"
+                            series={[
+                              { name: 'opened', color: '#1c7ed6', label: 'Abertas' },
+                              { name: 'concluded', color: STATUS_META.DONE.color, label: 'Concluídas' },
+                            ]}
+                            curveType="monotone"
+                            withLegend={false}
+                            tickLine="none"
+                            gridAxis="x"
+                            strokeWidth={2}
+                            fillOpacity={0.12}
+                            withDots
+                            dotProps={{ r: 3, strokeWidth: 2 }}
+                            yAxisProps={{ allowDecimals: false, width: 28 }}
+                            gridProps={{ stroke: '#e4e9e5', strokeDasharray: '0' }}
+                          />
+                        )}
+                      </Panel>
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, lg: 5 }} style={{ display: 'flex' }}>
+                      <Panel title="Distribuição por status" subtitle="Participação de cada situação no total" style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
+                          <RingProgress
+                            size={150}
+                            thickness={14}
+                            rootColor="#edf1ee"
+                            sections={ringSections}
+                            label={
+                              <div style={{ textAlign: 'center', lineHeight: 1.1 }}>
+                                <div className="sg-num" style={{ fontSize: 26, fontWeight: 600, letterSpacing: '-.03em' }}>{report.metrics.total}</div>
+                                <div style={{ fontSize: 11, color: 'var(--sg-muted)', marginTop: 3 }}>demandas</div>
+                              </div>
+                            }
+                          />
+                        </div>
+                        <div className="sg-legend">
+                          {(Object.keys(STATUS_META) as StatusKey[]).map(status => {
+                            const count = report.statusCounts[status] ?? 0;
+                            return (
+                              <div className="sg-legend__row" key={status} style={{ '--kc': STATUS_META[status].color } as CSSProperties}>
+                                <span className="sg-legend__dot" />
+                                <span className="sg-legend__name">{STATUS_META[status].label}</span>
+                                <span className="sg-legend__count">{count}</span>
+                                <span className="sg-legend__pct">{pct(count, report.metrics.total)}%</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </Panel>
+                    </Grid.Col>
+                  </Grid>
 
-                <Paper withBorder p="lg" radius="sm" shadow="xs">
-                  <Group justify="space-between" mb="sm">
-                    <Title order={5} fw={900}>Demandas Críticas / Atenção</Title>
-                    <Badge color="red" variant="light">{report.criticalDemands.length}</Badge>
-                  </Group>
-                  <DemandTable rows={report.criticalDemands} />
-                </Paper>
+                  <BreakdownTable title="Resumo por secretaria" rows={report.departments} empty="Nenhuma secretaria no filtro." />
+                  <BreakdownTable title="Categorias de demanda" rows={report.categories} empty="Nenhuma categoria no filtro." />
 
-                {includeDemandList && (
-                  <Paper withBorder p="lg" radius="sm" shadow="xs">
-                    <Group justify="space-between" mb="sm">
-                      <Title order={5} fw={900}>Detalhamento Analítico</Title>
-                      <Badge color="green" variant="light">{report.demands.length}</Badge>
-                    </Group>
-                    <DemandTable rows={report.demands.slice(0, 80)} />
-                    {report.demands.length > 80 && (
-                      <Text size="xs" c="dimmed" mt="sm">Prévia limitada a 80 linhas.</Text>
-                    )}
-                  </Paper>
-                )}
-              </Stack>
-            )}
-          </Grid.Col>
-        </Grid>
+                  <Panel
+                    title="Demandas críticas / atenção"
+                    subtitle="Chamados interrompidos que exigem acompanhamento"
+                    flush
+                    action={<CountChip value={report.criticalDemands.length} tone="red" />}
+                  >
+                    <DemandTable rows={report.criticalDemands} empty="Nenhuma demanda crítica no período." />
+                  </Panel>
+
+                  {includeDemandList && (
+                    <Panel
+                      title="Detalhamento analítico"
+                      subtitle="Lista completa dos chamados do período"
+                      flush
+                      action={<CountChip value={report.demands.length} tone="green" />}
+                      footer={report.demands.length > 80 ? <span>Prévia limitada a 80 linhas.</span> : undefined}
+                    >
+                      <DemandTable rows={report.demands.slice(0, 80)} empty="Nenhuma demanda encontrada." />
+                    </Panel>
+                  )}
+                </Stack>
+              )}
+            </Grid.Col>
+          </Grid>
+        </div>
       </Container>
-    </Box>
+    </div>
   );
+}
+
+function CountChip({ value, tone }: { value: number; tone: 'red' | 'green' }) {
+  const style = tone === 'red'
+    ? { background: '#ffecec', color: '#b02525', borderColor: '#ffd1d1' }
+    : undefined;
+  return <span className="sg-tag" style={style}>{value}</span>;
 }
 
 function BreakdownTable({ title, rows, empty }: { title: string; rows: Breakdown[]; empty: string }) {
   return (
-    <Paper withBorder p="lg" radius="sm" shadow="xs">
-      <Title order={5} fw={900} mb="sm">{title}</Title>
+    <Panel
+      title={title}
+      flush
+      action={rows.length > 0 ? <CountChip value={rows.length} tone="green" /> : undefined}
+    >
       {rows.length === 0 ? (
-        <Text size="sm" c="dimmed">{empty}</Text>
+        <EmptyState>{empty}</EmptyState>
       ) : (
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Nome</Table.Th>
-              <Table.Th>Total</Table.Th>
-              <Table.Th>Concluídas</Table.Th>
-              <Table.Th>Pendentes</Table.Th>
-              <Table.Th>Sem técnico</Table.Th>
-              <Table.Th>Carga</Table.Th>
-              <Table.Th>Resolução</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {rows.slice(0, 10).map(row => (
-              <Table.Tr key={row.id}>
-                <Table.Td><Text size="sm" fw={700}>{row.name}</Text></Table.Td>
-                <Table.Td>{row.total}</Table.Td>
-                <Table.Td>{row.concluded}</Table.Td>
-                <Table.Td>{row.pending}</Table.Td>
-                <Table.Td>{row.unassigned}</Table.Td>
-                <Table.Td>{row.sharePercent}%</Table.Td>
-                <Table.Td>{row.resolutionRate}%</Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+        <div className="sg-tablewrap">
+          <table className="sg-table sg-table--metrics">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th className="num">Total</th>
+                <th className="num">Concluídas</th>
+                <th className="num">Pendentes</th>
+                <th className="num">Sem técnico</th>
+                <th className="num">Carga</th>
+                <th className="num">Resolução</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.slice(0, 10).map(row => (
+                <tr key={row.id}>
+                  <td className="strong">{row.name}</td>
+                  <td className="num strong">{row.total}</td>
+                  <td className="num">{row.concluded}</td>
+                  <td className="num">{row.pending}</td>
+                  <td className={`num${row.unassigned === 0 ? ' muted' : ''}`}>{row.unassigned}</td>
+                  <td className="num">
+                    <div className="sg-cellbar">
+                      <MiniBar value={row.sharePercent} color="#9aa8a0" />
+                      <span style={{ minWidth: 36 }}>{row.sharePercent}%</span>
+                    </div>
+                  </td>
+                  <td className="num">
+                    <div className="sg-cellbar">
+                      <MiniBar value={row.resolutionRate} color={STATUS_META.DONE.color} />
+                      <span style={{ minWidth: 36 }}>{row.resolutionRate}%</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
-    </Paper>
+    </Panel>
   );
 }
 
-function DemandTable({ rows }: { rows: DemandRow[] }) {
-  if (rows.length === 0) return <Text size="sm" c="dimmed">Nenhuma demanda encontrada.</Text>;
+function formatAge(hours: number) {
+  return hours >= 48 ? `${Math.round(hours / 24)} d` : `${hours} h`;
+}
+
+function DemandTable({ rows, empty }: { rows: DemandRow[]; empty: string }) {
+  if (rows.length === 0) return <EmptyState>{empty}</EmptyState>;
   return (
-    <Table striped highlightOnHover>
-      <Table.Thead>
-        <Table.Tr>
-          <Table.Th>Protocolo</Table.Th>
-          <Table.Th>Título</Table.Th>
-          <Table.Th>Secretaria</Table.Th>
-          <Table.Th>Status</Table.Th>
-          <Table.Th>Técnico</Table.Th>
-          <Table.Th>Idade (h)</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        {rows.map(row => (
-          <Table.Tr key={row.id}>
-            <Table.Td><Badge variant="light">{row.protocol}</Badge></Table.Td>
-            <Table.Td><Text size="sm" lineClamp={2}>{row.title}</Text></Table.Td>
-            <Table.Td>{row.departmentName}</Table.Td>
-            <Table.Td>{row.statusLabel}</Table.Td>
-            <Table.Td>{row.technicianName ?? 'Sem técnico'}</Table.Td>
-            <Table.Td>{row.ageHours}h</Table.Td>
-          </Table.Tr>
-        ))}
-      </Table.Tbody>
-    </Table>
+    <div className="sg-tablewrap">
+      <table className="sg-table">
+        <thead>
+          <tr>
+            <th>Protocolo</th>
+            <th>Título</th>
+            <th>Secretaria</th>
+            <th>Status</th>
+            <th>Técnico</th>
+            <th className="num">Idade</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(row => (
+            <tr key={row.id}>
+              <td><span className="sg-proto">{row.protocol}</span></td>
+              <td style={{ minWidth: 200 }}><span className="sg-clamp strong">{row.title}</span></td>
+              <td className="muted">{row.departmentName}</td>
+              <td><StatusPill status={row.status} /></td>
+              <td className={row.technicianName ? undefined : 'muted'}>{row.technicianName ?? 'Sem técnico'}</td>
+              <td className="num muted" title={`${row.ageHours} horas`}>{formatAge(row.ageHours)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
+}
+
+function fmtPeriod(start: string, end: string) {
+  const f = (iso: string) => iso.split('-').reverse().join('/');
+  return `${f(start)} a ${f(end)}`;
 }

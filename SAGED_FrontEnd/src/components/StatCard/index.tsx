@@ -1,28 +1,44 @@
-import { Paper, Text, Group, ThemeIcon, Box } from '@mantine/core';
+import type { CSSProperties, ElementType, ReactNode } from 'react';
+import { MiniBar } from '../ui';
+import '../ui/ui.css';
 
 interface StatCardProps {
   label: string;
   value: string | number;
-  color: string;
-  icon: React.ElementType;
+  /** Hex color (semantic status color). Falls back to brand green. */
+  color?: string;
+  icon: ElementType;
+  /** Small caption under the number. */
+  hint?: ReactNode;
+  /** 0-100: renders a thin share bar next to the caption. */
+  share?: number;
 }
 
-export function StatCard({ label, value, color, icon: Icon }: StatCardProps) {
+/** Tint a hex color to a soft background (8% alpha). */
+function soft(hex: string) {
+  return `${hex}14`;
+}
+
+export function StatCard({ label, value, color = '#1d720a', icon: Icon, hint, share }: StatCardProps) {
+  const style = { '--kc': color, '--kc-soft': soft(color) } as CSSProperties;
   return (
-    <Paper withBorder p="md" radius="md" bg="white">
-      <Group justify="space-between">
-        <Box>
-          <Text size="xs" c="dimmed" fw={700} tt="uppercase">
-            {label}
-          </Text>
-          <Text fw={700} size="xl">
-            {value}
-          </Text>
-        </Box>
-        <ThemeIcon color={color} variant="light" size={48} radius="md">
-          <Icon size={28} stroke={1.5} />
-        </ThemeIcon>
-      </Group>
-    </Paper>
+    <div className="sg-panel sg-kpi" style={style}>
+      <div className="sg-kpi__top">
+        <span className="sg-kpi__label">
+          <span className="sg-kpi__dot" />
+          {label}
+        </span>
+        <span className="sg-kpi__icon">
+          <Icon size={16} stroke={1.8} />
+        </span>
+      </div>
+      <div className="sg-kpi__value">{value}</div>
+      {(hint || share !== undefined) && (
+        <div className="sg-kpi__foot">
+          {share !== undefined && <MiniBar value={share} />}
+          {hint && <span style={{ whiteSpace: 'nowrap' }}>{hint}</span>}
+        </div>
+      )}
+    </div>
   );
 }
